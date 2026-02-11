@@ -49,23 +49,6 @@ function authenticateToken(req, res, next) {
   });
 }
 
-
-// 🔥 ROTA TEMPORÁRIA PARA CRIAR PRIMEIRO ADMIN
-app.get("/create-admin", async (req, res) => {
-  const hashed = await bcrypt.hash("123456", 10);
-
-  try {
-    await pool.query(
-      "INSERT INTO users (username, password, role) VALUES ($1,$2,$3)",
-      ["admin", hashed, "admin"]
-    );
-    res.send("Admin criado com sucesso");
-  } catch (err) {
-    res.send("Admin já existe");
-  }
-});
-
-
 // 🔐 LOGIN
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
