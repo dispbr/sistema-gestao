@@ -3,81 +3,188 @@
 <head>
 <meta charset="UTF-8">
 <title>Painel Admin</title>
-<link rel="stylesheet" href="dashboard.css">
+
 <style>
-body {
-  background: radial-gradient(circle at top, #1e3a5f, #08162a 70%);
-  color: white;
-  font-family: Arial;
+* {
+  box-sizing: border-box;
+  font-family: "Inter", Arial, sans-serif;
 }
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at top, #1e3a5f, #08162a 70%);
+}
+
+/* Topbar */
+.topbar {
+  background: #0b1f3a;
+  color: white;
+  padding: 20px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+/* Card central */
 .container {
-  max-width: 900px;
+  max-width: 1100px;
   margin: 50px auto;
   background: #ffffff;
-  color: #000;
-  padding: 30px;
-  border-radius: 15px;
+  border-radius: 20px;
+  padding: 40px;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.2);
 }
+
+/* Títulos */
+h2 {
+  margin-top: 0;
+  color: #0b1f3a;
+}
+
+h3 {
+  margin-top: 40px;
+  color: #12325c;
+}
+
+/* Inputs */
 input, select {
-  padding: 10px;
-  margin: 5px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  margin-right: 10px;
+  margin-top: 10px;
 }
+
+/* Botões */
 button {
-  padding: 10px 15px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
   cursor: pointer;
+  font-weight: 600;
 }
+
+.btn-primary {
+  background: linear-gradient(145deg, #0b1f3a, #12325c);
+  color: white;
+}
+
+.btn-danger {
+  background: #c0392b;
+  color: white;
+}
+
+.btn-success {
+  background: #27ae60;
+  color: white;
+}
+
+.btn-secondary {
+  background: #e5e7eb;
+}
+
+/* Tabela */
 table {
   width: 100%;
   margin-top: 20px;
   border-collapse: collapse;
 }
+
+th {
+  background: #f3f4f6;
+  text-align: left;
+}
+
 td, th {
-  border: 1px solid #ddd;
-  padding: 8px;
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+tr:hover {
+  background: #f9fafb;
 }
 </style>
+
+<script>
+const token = localStorage.getItem("token");
+const role = localStorage.getItem("role");
+
+if (!token || role !== "admin") {
+  window.location.href = "login.html";
+}
+</script>
+
 </head>
+
 <body>
 
-<div class="container">
-  <h2>👥 Painel Administrativo</h2>
+<div class="topbar">
+  <h1>👥 Painel Administrativo</h1>
+  <div>
+    <button class="btn-secondary" onclick="voltar()">Dashboard</button>
+    <button class="btn-danger" onclick="logout()">Sair</button>
+  </div>
+</div>
 
-  <h3>Criar Usuário</h3>
+<div class="container">
+
+  <h2>Gerenciamento de Usuários</h2>
+
+  <h3>Criar Novo Usuário</h3>
+
   <input id="username" placeholder="Usuário">
   <input id="password" placeholder="Senha">
-  <select id="role">
+  <select id="roleSelect">
     <option value="user">Usuário</option>
     <option value="admin">Admin</option>
   </select>
-  <button onclick="criarUsuario()">Criar</button>
 
-  <h3>Usuários</h3>
+  <button class="btn-success" onclick="criarUsuario()">Criar Usuário</button>
+
+  <h3>Usuários Cadastrados</h3>
+
   <table>
     <thead>
       <tr>
         <th>ID</th>
         <th>Usuário</th>
-        <th>Role</th>
+        <th>Permissão</th>
         <th>Ação</th>
       </tr>
     </thead>
     <tbody id="listaUsuarios"></tbody>
   </table>
+
 </div>
 
 <script>
 const API = "https://sistema-gestao-yz16.onrender.com";
 
-const token = localStorage.getItem("token");
-if(!token) window.location.href = "login.html";
+function logout() {
+  localStorage.clear();
+  window.location.href = "login.html";
+}
+
+function voltar() {
+  window.location.href = "dashboard.html";
+}
 
 async function carregarUsuarios() {
   const res = await fetch(API + "/users", {
     headers: { Authorization: "Bearer " + token }
   });
 
-  const data = await res.json();
+  if (!res.ok) {
+    alert("Erro ao carregar usuários");
+    return;
+  }
 
+  const data = await res.json();
   const tbody = document.getElementById("listaUsuarios");
   tbody.innerHTML = "";
 
@@ -87,7 +194,11 @@ async function carregarUsuarios() {
         <td>${u.id}</td>
         <td>${u.username}</td>
         <td>${u.role}</td>
-        <td><button onclick="resetar(${u.id})">Resetar Senha</button></td>
+        <td>
+          <button class="btn-danger" onclick="resetar(${u.id})">
+            Resetar Senha
+          </button>
+        </td>
       </tr>
     `;
   });
@@ -96,9 +207,9 @@ async function carregarUsuarios() {
 async function criarUsuario() {
   const username = document.getElementById("username").value;
   const password = document.getElementById("password").value;
-  const role = document.getElementById("role").value;
+  const role = document.getElementById("roleSelect").value;
 
-  await fetch(API + "/register", {
+  const res = await fetch(API + "/register", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -107,11 +218,19 @@ async function criarUsuario() {
     body: JSON.stringify({ username, password, role })
   });
 
+  if (!res.ok) {
+    alert("Erro ao criar usuário");
+    return;
+  }
+
+  alert("Usuário criado com sucesso");
   carregarUsuarios();
 }
 
 async function resetar(id) {
   const novaSenha = prompt("Nova senha:");
+  if (!novaSenha) return;
+
   await fetch(API + "/reset-password/" + id, {
     method: "PUT",
     headers: {
