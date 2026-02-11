@@ -11,6 +11,11 @@ app.use(cors());
 
 const SECRET = process.env.SECRET || "super_chave_secreta";
 
+// 🔹 ROTA RAIZ (evita Cannot GET /)
+app.get("/", (req, res) => {
+  res.send("API Sistema Gestão rodando 🚀");
+});
+
 // 🔹 Conexão PostgreSQL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -25,11 +30,9 @@ CREATE TABLE IF NOT EXISTS users (
   password TEXT NOT NULL,
   role VARCHAR(20) DEFAULT 'user'
 );
-`).then(() => {
-  console.log("Tabela users verificada/criada");
-}).catch(err => {
-  console.error("Erro ao criar tabela:", err);
-});
+`)
+.then(() => console.log("Tabela users pronta"))
+.catch(err => console.error("Erro ao criar tabela:", err));
 
 
 // 🔐 Middleware de autenticação
