@@ -1,0 +1,23 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard</title>
+<link rel="stylesheet" href="style.css">
+<script>
+if(!localStorage.getItem("token")){
+  window.location.href="login.html";
+}
+</script>
+</head>
+<body class="login-bg">
+<div class="login-card">
+<h2>Dashboard</h2>
+<button onclick="logout()">Sair</button>
+    <button onclick="window.location='admin.html'">Painel Admin</button>
+
+</div>
+<script src="app.js"></script>
+</body>
+</html>

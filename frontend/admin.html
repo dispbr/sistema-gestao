@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Painel Admin</title>
+<link rel="stylesheet" href="style.css">
+<script>
+if(!localStorage.getItem("token")){
+  window.location.href="login.html";
+}
+</script>
+</head>
+<body class="login-bg">
+
+<div class="login-card">
+<h2>Painel Administrativo</h2>
+
+<button onclick="carregarUsuarios()">Carregar Usuários</button>
+
+<ul id="lista"></ul>
+
+<button onclick="logout()">Sair</button>
+</div>
+
+<script src="admin.js"></script>
+</body>
+</html>

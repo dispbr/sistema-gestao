@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Login</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-bg">
+
+<div class="login-card">
+
+  <div class="logo">↗</div>
+
+  <h2>Bem-vindo!</h2>
+  <p class="subtitle">Faça login para acessar o sistema</p>
+
+  <div class="field">
+    <label>Usuário</label>
+    <input id="usuario" type="text" placeholder="Digite seu usuário">
+  </div>
+
+  <div class="field">
+    <label>Senha</label>
+    <div class="senha-box">
+      <input id="senha" type="password" placeholder="••••••••">
+      <button type="button" onclick="toggleSenha()">👁</button>
+    </div>
+  </div>
+
+  <button class="btn-login" onclick="login()">Entrar no Sistema</button>
+
+  <p id="erro" class="erro-msg"></p>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
