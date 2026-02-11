@@ -12,8 +12,8 @@ app.use(express.json());
 // Servir arquivos do frontend
 app.use(express.static(path.join(__dirname, "../frontend")));
 
-const SECRET = "super_chave_secreta";
-
+const SECRET = process.env.SECRET;
+  
 // Banco SQLite
 const db = new sqlite3.Database("banco.db");
 
