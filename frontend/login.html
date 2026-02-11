@@ -1,38 +1,143 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <title>Login</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<title>Login</title>
+<link rel="stylesheet" href="login.css">
+
+<script>
+// 🔐 Se já estiver logado, redireciona
+if (localStorage.getItem("token")) {
+  const role = localStorage.getItem("role");
+  if (role === "admin") {
+    window.location.href = "admin.html";
+  } else {
+    window.location.href = "dashboard.html";
+  }
+}
+</script>
+
+<style>
+.erro-animado {
+  animation: shake 0.3s;
+}
+
+@keyframes shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  50% { transform: translateX(5px); }
+  75% { transform: translateX(-5px); }
+  100% { transform: translateX(0); }
+}
+</style>
 </head>
-<body class="login-bg">
 
-<div class="login-card">
+<body>
 
-  <div class="logo">↗</div>
+<main class="login-bg">
+  <section class="login-card">
 
-  <h2>Bem-vindo!</h2>
-  <p class="subtitle">Faça login para acessar o sistema</p>
+    <div class="logo">↗</div>
 
-  <div class="field">
-    <label>Usuário</label>
-    <input id="usuario" type="text" placeholder="Digite seu usuário">
-  </div>
+    <h2>Bem-vindo!</h2>
+    <p class="subtitle">Faça login para acessar o sistema</p>
 
-  <div class="field">
-    <label>Senha</label>
-    <div class="senha-box">
-      <input id="senha" type="password" placeholder="••••••••">
-      <button type="button" onclick="toggleSenha()">👁</button>
+    <div class="field">
+      <label>Usuário</label>
+      <input type="text" id="username" placeholder="Digite seu usuário">
     </div>
-  </div>
 
-  <button class="btn-login" onclick="login()">Entrar no Sistema</button>
+    <div class="field">
+      <label>Senha</label>
+      <div style="display:flex;">
+        <input type="password" id="password" placeholder="••••••••" style="flex:1;">
+        <button type="button" onclick="toggleSenha()">👁</button>
+      </div>
+    </div>
 
-  <p id="erro" class="erro-msg"></p>
+    <p id="erro" style="color:red; display:none;"></p>
 
-</div>
+    <button class="btn-login" id="btnLogin">
+      Entrar no Sistema
+    </button>
 
-<script src="app.js"></script>
+  </section>
+</main>
+
+<script>
+const API = "https://sistema-gestao-yz16.onrender.com";
+const btn = document.getElementById("btnLogin");
+const erro = document.getElementById("erro");
+
+function toggleSenha(){
+  const input = document.getElementById("password");
+  input.type = input.type === "password" ? "text" : "password";
+}
+
+// 🔐 Login ao apertar ENTER
+document.addEventListener("keypress", function(e){
+  if(e.key === "Enter"){
+    login();
+  }
+});
+
+btn.addEventListener("click", login);
+
+async function login() {
+
+  btn.disabled = true;
+  btn.innerText = "Entrando...";
+  erro.style.display = "none";
+
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value.trim();
+
+  if (!username || !password) {
+    mostrarErro("Preencha todos os campos");
+    return;
+  }
+
+  try {
+    const res = await fetch(API + "/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      mostrarErro(data.error || "Erro no login");
+      return;
+    }
+
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("role", data.role);
+
+    if (data.role === "admin") {
+      window.location.href = "admin.html";
+    } else {
+      window.location.href = "dashboard.html";
+    }
+
+  } catch (err) {
+    mostrarErro("Erro de conexão com servidor");
+  }
+}
+
+function mostrarErro(msg){
+  erro.innerText = msg;
+  erro.style.display = "block";
+  erro.classList.add("erro-animado");
+
+  setTimeout(() => {
+    erro.classList.remove("erro-animado");
+  }, 300);
+
+  btn.disabled = false;
+  btn.innerText = "Entrar no Sistema";
+}
+</script>
+
 </body>
 </html>

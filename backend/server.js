@@ -4,17 +4,16 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const { Pool } = require("pg");
+const path = require("path");
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-const SECRET = process.env.SECRET || "super_chave_secreta";
+// 🔹 Servir frontend automaticamente
+app.use(express.static(path.join(__dirname, "../frontend")));
 
-// 🔹 ROTA RAIZ (evita Cannot GET /)
-app.get("/", (req, res) => {
-  res.send("API Sistema Gestão rodando 🚀");
-});
+const SECRET = process.env.SECRET || "super_chave_secreta";
 
 // 🔹 Conexão PostgreSQL
 const pool = new Pool({
@@ -48,6 +47,7 @@ function authenticateToken(req, res, next) {
     next();
   });
 }
+
 
 // 🔐 LOGIN
 app.post("/login", async (req, res) => {
@@ -90,7 +90,6 @@ app.post("/register", authenticateToken, async (req, res) => {
   }
 
   const { username, password, role } = req.body;
-
   const hashed = await bcrypt.hash(password, 10);
 
   try {
@@ -138,6 +137,12 @@ app.put("/reset-password/:id", authenticateToken, async (req, res) => {
   );
 
   res.json({ message: "Senha atualizada com sucesso" });
+});
+
+
+// 🔹 Rota padrão sempre abrir login
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/login.html"));
 });
 
 

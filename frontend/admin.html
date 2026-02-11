@@ -3,25 +3,129 @@
 <head>
 <meta charset="UTF-8">
 <title>Painel Admin</title>
-<link rel="stylesheet" href="style.css">
-<script>
-if(!localStorage.getItem("token")){
-  window.location.href="login.html";
+<link rel="stylesheet" href="dashboard.css">
+<style>
+body {
+  background: radial-gradient(circle at top, #1e3a5f, #08162a 70%);
+  color: white;
+  font-family: Arial;
 }
-</script>
+.container {
+  max-width: 900px;
+  margin: 50px auto;
+  background: #ffffff;
+  color: #000;
+  padding: 30px;
+  border-radius: 15px;
+}
+input, select {
+  padding: 10px;
+  margin: 5px;
+}
+button {
+  padding: 10px 15px;
+  cursor: pointer;
+}
+table {
+  width: 100%;
+  margin-top: 20px;
+  border-collapse: collapse;
+}
+td, th {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+</style>
 </head>
-<body class="login-bg">
+<body>
 
-<div class="login-card">
-<h2>Painel Administrativo</h2>
+<div class="container">
+  <h2>👥 Painel Administrativo</h2>
 
-<button onclick="carregarUsuarios()">Carregar Usuários</button>
+  <h3>Criar Usuário</h3>
+  <input id="username" placeholder="Usuário">
+  <input id="password" placeholder="Senha">
+  <select id="role">
+    <option value="user">Usuário</option>
+    <option value="admin">Admin</option>
+  </select>
+  <button onclick="criarUsuario()">Criar</button>
 
-<ul id="lista"></ul>
-
-<button onclick="logout()">Sair</button>
+  <h3>Usuários</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Usuário</th>
+        <th>Role</th>
+        <th>Ação</th>
+      </tr>
+    </thead>
+    <tbody id="listaUsuarios"></tbody>
+  </table>
 </div>
 
-<script src="admin.js"></script>
+<script>
+const API = "https://sistema-gestao-yz16.onrender.com";
+
+const token = localStorage.getItem("token");
+if(!token) window.location.href = "login.html";
+
+async function carregarUsuarios() {
+  const res = await fetch(API + "/users", {
+    headers: { Authorization: "Bearer " + token }
+  });
+
+  const data = await res.json();
+
+  const tbody = document.getElementById("listaUsuarios");
+  tbody.innerHTML = "";
+
+  data.forEach(u => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${u.id}</td>
+        <td>${u.username}</td>
+        <td>${u.role}</td>
+        <td><button onclick="resetar(${u.id})">Resetar Senha</button></td>
+      </tr>
+    `;
+  });
+}
+
+async function criarUsuario() {
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+  const role = document.getElementById("role").value;
+
+  await fetch(API + "/register", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + token
+    },
+    body: JSON.stringify({ username, password, role })
+  });
+
+  carregarUsuarios();
+}
+
+async function resetar(id) {
+  const novaSenha = prompt("Nova senha:");
+  await fetch(API + "/reset-password/" + id, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + token
+    },
+    body: JSON.stringify({ password: novaSenha })
+  });
+
+  alert("Senha atualizada");
+}
+
+carregarUsuarios();
+</script>
+
 </body>
 </html>

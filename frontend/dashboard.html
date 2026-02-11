@@ -1,23 +1,75 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
 <title>Dashboard</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="dashboard.css">
+
 <script>
-if(!localStorage.getItem("token")){
-  window.location.href="login.html";
+// 🔐 Proteção de login
+const token = localStorage.getItem("token");
+if (!token) {
+  window.location.href = "login.html";
 }
 </script>
-</head>
-<body class="login-bg">
-<div class="login-card">
-<h2>Dashboard</h2>
-<button onclick="logout()">Sair</button>
-    <button onclick="window.location='admin.html'">Painel Admin</button>
 
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: radial-gradient(circle at top, #1e3a5f, #08162a 70%);
+}
+
+.container {
+  max-width: 900px;
+  margin: 60px auto;
+  background: #ffffff;
+  padding: 40px;
+  border-radius: 15px;
+  text-align: center;
+}
+
+button {
+  padding: 12px 20px;
+  margin: 10px;
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  background: #12325c;
+  color: white;
+  font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <h2>📊 Dashboard</h2>
+
+  <div id="adminArea"></div>
+
+  <button onclick="logout()">Sair</button>
 </div>
-<script src="app.js"></script>
+
+<script>
+const role = localStorage.getItem("role");
+
+// 👑 Mostrar botão admin só se for admin
+if (role === "admin") {
+  document.getElementById("adminArea").innerHTML = `
+    <button onclick="window.location='admin.html'">
+      👥 Painel Admin
+    </button>
+  `;
+}
+
+function logout() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("role");
+  window.location.href = "login.html";
+}
+</script>
+
 </body>
 </html>
