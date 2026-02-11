@@ -2,133 +2,99 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>Sistema Gestão</title>
+<title>Dashboard</title>
+<link rel="stylesheet" href="dashboard.css">
+
+<script>
+// 🔐 Proteção de acesso
+const token = localStorage.getItem("token");
+if (!token) {
+  window.location.href = "login.html";
+}
+</script>
 
 <style>
-* {
-  box-sizing: border-box;
-  font-family: "Inter", Arial, sans-serif;
-}
-
-body {
-  margin: 0;
+.user-area {
   display: flex;
-  height: 100vh;
-}
-
-/* Sidebar */
-.sidebar {
-  width: 230px;
-  background: #0b1f3a;
-  color: white;
-  padding: 20px;
-}
-
-.sidebar h2 {
-  font-size: 18px;
-  margin-bottom: 30px;
-}
-
-.sidebar button {
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 10px;
-  background: transparent;
-  border: none;
-  color: white;
-  text-align: left;
-  cursor: pointer;
-}
-
-.sidebar button:hover {
-  background: #12325c;
-}
-
-/* Conteúdo */
-.content {
-  flex: 1;
-  background: #f4f6f9;
-  padding: 30px;
-}
-
-/* Topbar */
-.topbar {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  gap: 15px;
 }
 
-.card {
-  background: white;
-  padding: 30px;
-  border-radius: 15px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+.user-area span {
+  font-weight: bold;
 }
 </style>
 
-<script>
-const token = localStorage.getItem("token");
-if (!token) window.location.href = "login.html";
-</script>
-
 </head>
-
 <body>
 
-<div class="sidebar">
-  <h2>⚙ Sistema</h2>
+<!-- Topbar -->
+<header class="topbar">
+  <div>
+    <h1>Gestão de Produtos 📦</h1>
+    <p>Controle total de sua operação</p>
+  </div>
 
-  <button onclick="abrirHome()">🏠 Dashboard</button>
-  <button onclick="alert('Módulo Produtos')">📦 Produtos</button>
-  <button onclick="alert('Módulo Notas')">📄 Notas Fiscais</button>
-  <button onclick="alert('Módulo Impostos')">💰 Impostos</button>
+  <div class="user-area">
+    👤 <span id="nomeUsuario"></span>
+    <button onclick="logout()">Sair</button>
+  </div>
+</header>
 
-  <div id="adminMenu"></div>
+<!-- Conteúdo -->
+<main class="dashboard-bg">
+  <div class="cards">
 
-  <hr>
-
-  <button onclick="logout()">🚪 Sair</button>
-</div>
-
-<div class="content">
-
-  <div class="topbar">
-    <h1 id="titulo">Dashboard</h1>
-    <div>
-      👤 <span id="usuarioNome"></span>
+    <div class="card purple">
+      <span class="icon">＋</span>
+      <p>Cadastro de<br>Produtos</p>
     </div>
-  </div>
 
-  <div class="card">
-    <h2>Bem-vindo ao Sistema</h2>
-    <p>Seu sistema ERP está funcionando perfeitamente 🚀</p>
-  </div>
+    <div class="card pink">
+      <span class="icon">⚡</span>
+      <p>Marketplace</p>
+    </div>
 
-</div>
+    <div class="card blue">
+      <span class="icon">📄</span>
+      <p>Notas Fiscais</p>
+    </div>
+
+    <div class="card green">
+      <span class="icon">💲</span>
+      <p>Impostos</p>
+    </div>
+
+    <div class="card orange">
+      <span class="icon">⬆</span>
+      <p>Gerenciar<br>Devoluções</p>
+    </div>
+
+    <!-- 🔥 Card Admin aparece só para admin -->
+    <div id="adminCard"></div>
+
+  </div>
+</main>
 
 <script>
 const role = localStorage.getItem("role");
 const username = localStorage.getItem("username");
 
-document.getElementById("usuarioNome").innerText = username;
+document.getElementById("nomeUsuario").innerText = username || "Usuário";
 
-// Mostrar menu admin apenas para admin
+// 🔥 Mostrar card Administração somente para admin
 if (role === "admin") {
-  document.getElementById("adminMenu").innerHTML = `
-    <button onclick="window.location='admin.html'">
-      👥 Administração
-    </button>
+  document.getElementById("adminCard").innerHTML = `
+    <div class="card dark" onclick="window.location='admin.html'">
+      <span class="icon">👥</span>
+      <p>Administração</p>
+    </div>
   `;
 }
 
 function logout() {
   localStorage.clear();
   window.location.href = "login.html";
-}
-
-function abrirHome() {
-  document.getElementById("titulo").innerText = "Dashboard";
 }
 </script>
 
