@@ -2,72 +2,133 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>Dashboard</title>
-<link rel="stylesheet" href="dashboard.css">
-
-<script>
-// 🔐 Proteção de login
-const token = localStorage.getItem("token");
-if (!token) {
-  window.location.href = "login.html";
-}
-</script>
+<title>Sistema Gestão</title>
 
 <style>
+* {
+  box-sizing: border-box;
+  font-family: "Inter", Arial, sans-serif;
+}
+
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
-  background: radial-gradient(circle at top, #1e3a5f, #08162a 70%);
+  display: flex;
+  height: 100vh;
 }
 
-.container {
-  max-width: 900px;
-  margin: 60px auto;
-  background: #ffffff;
-  padding: 40px;
-  border-radius: 15px;
-  text-align: center;
-}
-
-button {
-  padding: 12px 20px;
-  margin: 10px;
-  cursor: pointer;
-  border: none;
-  border-radius: 8px;
-  background: #12325c;
+/* Sidebar */
+.sidebar {
+  width: 230px;
+  background: #0b1f3a;
   color: white;
-  font-weight: bold;
+  padding: 20px;
+}
+
+.sidebar h2 {
+  font-size: 18px;
+  margin-bottom: 30px;
+}
+
+.sidebar button {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  background: transparent;
+  border: none;
+  color: white;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sidebar button:hover {
+  background: #12325c;
+}
+
+/* Conteúdo */
+.content {
+  flex: 1;
+  background: #f4f6f9;
+  padding: 30px;
+}
+
+/* Topbar */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.card {
+  background: white;
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
 }
 </style>
+
+<script>
+const token = localStorage.getItem("token");
+if (!token) window.location.href = "login.html";
+</script>
+
 </head>
 
 <body>
 
-<div class="container">
-  <h2>📊 Dashboard</h2>
+<div class="sidebar">
+  <h2>⚙ Sistema</h2>
 
-  <div id="adminArea"></div>
+  <button onclick="abrirHome()">🏠 Dashboard</button>
+  <button onclick="alert('Módulo Produtos')">📦 Produtos</button>
+  <button onclick="alert('Módulo Notas')">📄 Notas Fiscais</button>
+  <button onclick="alert('Módulo Impostos')">💰 Impostos</button>
 
-  <button onclick="logout()">Sair</button>
+  <div id="adminMenu"></div>
+
+  <hr>
+
+  <button onclick="logout()">🚪 Sair</button>
+</div>
+
+<div class="content">
+
+  <div class="topbar">
+    <h1 id="titulo">Dashboard</h1>
+    <div>
+      👤 <span id="usuarioNome"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Bem-vindo ao Sistema</h2>
+    <p>Seu sistema ERP está funcionando perfeitamente 🚀</p>
+  </div>
+
 </div>
 
 <script>
 const role = localStorage.getItem("role");
+const username = localStorage.getItem("username");
 
-// 👑 Mostrar botão admin só se for admin
+document.getElementById("usuarioNome").innerText = username;
+
+// Mostrar menu admin apenas para admin
 if (role === "admin") {
-  document.getElementById("adminArea").innerHTML = `
+  document.getElementById("adminMenu").innerHTML = `
     <button onclick="window.location='admin.html'">
-      👥 Painel Admin
+      👥 Administração
     </button>
   `;
 }
 
 function logout() {
-  localStorage.removeItem("token");
-  localStorage.removeItem("role");
+  localStorage.clear();
   window.location.href = "login.html";
+}
+
+function abrirHome() {
+  document.getElementById("titulo").innerText = "Dashboard";
 }
 </script>
 
