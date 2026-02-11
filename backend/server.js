@@ -1,126 +1,160 @@
+require("dotenv").config();
 const express = require("express");
-const sqlite3 = require("sqlite3").verbose();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
-const path = require("path");
+const { Pool } = require("pg");
 
 const app = express();
-app.use(cors());
 app.use(express.json());
+app.use(cors());
 
-// Servir arquivos do frontend
-app.use(express.static(path.join(__dirname, "../frontend")));
+const SECRET = process.env.SECRET || "super_chave_secreta";
 
-const SECRET = process.env.SECRET;
-  
-// Banco SQLite
-const db = new sqlite3.Database("banco.db");
-
-db.serialize(() => {
-  db.run(`CREATE TABLE IF NOT EXISTS usuarios (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    usuario TEXT UNIQUE,
-    senha TEXT,
-    nivel TEXT
-  )`);
+// 🔹 Conexão PostgreSQL
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
 });
 
-// =============================
-// REGISTRAR USUÁRIO
-// =============================
-app.post("/register", async (req, res) => {
-  const { usuario, senha, nivel } = req.body;
-
-  try {
-    const hash = await bcrypt.hash(senha, 10);
-
-    db.run(
-      "INSERT INTO usuarios (usuario, senha, nivel) VALUES (?, ?, ?)",
-      [usuario, hash, nivel || "comum"],
-      function (err) {
-        if (err) {
-          return res.status(400).json({ erro: "Usuário já existe" });
-        }
-        res.json({ ok: true });
-      }
-    );
-  } catch (err) {
-    res.status(500).json({ erro: "Erro interno" });
-  }
+// 🔹 Criar tabela automaticamente
+pool.query(`
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(100) UNIQUE NOT NULL,
+  password TEXT NOT NULL,
+  role VARCHAR(20) DEFAULT 'user'
+);
+`).then(() => {
+  console.log("Tabela users verificada/criada");
+}).catch(err => {
+  console.error("Erro ao criar tabela:", err);
 });
 
-// =============================
-// LOGIN
-// =============================
-app.post("/login", (req, res) => {
-  const { usuario, senha } = req.body;
 
-  db.get("SELECT * FROM usuarios WHERE usuario = ?", [usuario], async (err, user) => {
+// 🔐 Middleware de autenticação
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
 
-    if (!user) {
-      return res.status(401).json({ erro: "Usuário inválido" });
-    }
-
-    const senhaValida = await bcrypt.compare(senha, user.senha);
-
-    if (!senhaValida) {
-      return res.status(401).json({ erro: "Senha inválida" });
-    }
-
-    const token = jwt.sign(
-      {
-        id: user.id,
-        usuario: user.usuario,
-        nivel: user.nivel
-      },
-      SECRET,
-      { expiresIn: "30m" }
-    );
-
-    res.json({ token });
-  });
-});
-
-// =============================
-// PROTEGER ROTAS (exemplo)
-// =============================
-function autenticar(req, res, next) {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader) return res.sendStatus(401);
-
-  const token = authHeader.split(" ")[1];
+  if (!token) return res.status(401).json({ error: "Token não fornecido" });
 
   jwt.verify(token, SECRET, (err, user) => {
-    if (err) return res.sendStatus(403);
+    if (err) return res.status(403).json({ error: "Token inválido" });
     req.user = user;
     next();
   });
 }
 
-// Exemplo rota protegida
-app.get("/perfil", autenticar, (req, res) => {
-  res.json({ usuario: req.user.usuario, nivel: req.user.nivel });
+
+// 🔥 ROTA TEMPORÁRIA PARA CRIAR PRIMEIRO ADMIN
+app.get("/create-admin", async (req, res) => {
+  const hashed = await bcrypt.hash("123456", 10);
+
+  try {
+    await pool.query(
+      "INSERT INTO users (username, password, role) VALUES ($1,$2,$3)",
+      ["admin", hashed, "admin"]
+    );
+    res.send("Admin criado com sucesso");
+  } catch (err) {
+    res.send("Admin já existe");
+  }
 });
-app.get("/usuarios", autenticar, (req, res) => {
-  if (req.user.nivel !== "admin") {
-    return res.status(403).json({ erro: "Acesso negado" });
+
+
+// 🔐 LOGIN
+app.post("/login", async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    const result = await pool.query(
+      "SELECT * FROM users WHERE username=$1",
+      [username]
+    );
+
+    if (result.rows.length === 0)
+      return res.status(400).json({ error: "Usuário inválido" });
+
+    const user = result.rows[0];
+
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid)
+      return res.status(400).json({ error: "Senha inválida" });
+
+    const token = jwt.sign(
+      { id: user.id, role: user.role },
+      SECRET,
+      { expiresIn: "30m" }
+    );
+
+    res.json({ token, role: user.role });
+
+  } catch (err) {
+    res.status(500).json({ error: "Erro no servidor" });
+  }
+});
+
+
+// 👥 CRIAR USUÁRIO (APENAS ADMIN)
+app.post("/register", authenticateToken, async (req, res) => {
+
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ error: "Apenas admin pode criar usuários" });
   }
 
-  db.all("SELECT id, usuario, nivel FROM usuarios", [], (err, rows) => {
-    res.json(rows);
-  });
+  const { username, password, role } = req.body;
+
+  const hashed = await bcrypt.hash(password, 10);
+
+  try {
+    await pool.query(
+      "INSERT INTO users (username, password, role) VALUES ($1,$2,$3)",
+      [username, hashed, role || "user"]
+    );
+
+    res.json({ message: "Usuário criado com sucesso" });
+
+  } catch (err) {
+    res.status(400).json({ error: "Usuário já existe" });
+  }
 });
 
-// =============================
-// ROTA INICIAL
-// =============================
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/login.html"));
+
+// 📋 LISTAR USUÁRIOS (APENAS ADMIN)
+app.get("/users", authenticateToken, async (req, res) => {
+
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ error: "Apenas admin pode listar usuários" });
+  }
+
+  const result = await pool.query(
+    "SELECT id, username, role FROM users"
+  );
+
+  res.json(result.rows);
 });
 
-// =============================
+
+// 🔄 RESETAR SENHA (APENAS ADMIN)
+app.put("/reset-password/:id", authenticateToken, async (req, res) => {
+
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ error: "Apenas admin pode resetar senha" });
+  }
+
+  const { password } = req.body;
+  const hashed = await bcrypt.hash(password, 10);
+
+  await pool.query(
+    "UPDATE users SET password=$1 WHERE id=$2",
+    [hashed, req.params.id]
+  );
+
+  res.json({ message: "Senha atualizada com sucesso" });
+});
+
+
 app.listen(3000, () => {
-  console.log("Servidor rodando em http://localhost:3000");
+  console.log("Servidor rodando na porta 3000");
 });
