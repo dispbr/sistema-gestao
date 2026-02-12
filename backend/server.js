@@ -11,28 +11,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-/* ================================
-   🔐 CONTENT SECURITY POLICY
-================================ */
-app.use((req, res, next) => {
-  res.setHeader(
-    "Content-Security-Policy",
-    "default-src 'self'; " +
-    "style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; " +
-    "font-src 'self' https://fonts.gstatic.com; " +
-    "script-src 'self' 'unsafe-inline';"
-  );
-  next();
-});
-
-/* ================================
-   📦 SERVIR FRONTEND
-================================ */
 app.use(express.static(path.join(__dirname, "../frontend")));
 
-/* ================================
-   🗄 CONEXÃO POSTGRES
-================================ */
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
@@ -40,9 +20,8 @@ const pool = new Pool({
 
 const SECRET = process.env.JWT_SECRET || "supersecretkey";
 
-/* ================================
-   🔐 MIDDLEWARE TOKEN
-================================ */
+/* ================= TOKEN ================= */
+
 function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
@@ -50,15 +29,13 @@ function authenticateToken(req, res, next) {
   if (!token) return res.status(401).json({ error: "Token não enviado" });
 
   jwt.verify(token, SECRET, (err, user) => {
-    if (err) return res.status(403).json({ error: "Token inválido ou expirado" });
+    if (err) return res.status(403).json({ error: "Token inválido" });
     req.user = user;
     next();
   });
 }
 
-/* ================================
-   👤 USERS
-================================ */
+/* ================= USERS ================= */
 
 pool.query(`
 CREATE TABLE IF NOT EXISTS users (
@@ -69,23 +46,8 @@ CREATE TABLE IF NOT EXISTS users (
 );
 `);
 
-app.post("/register", authenticateToken, async (req, res) => {
-  try {
-    const { username, password, role } = req.body;
-    const hash = await bcrypt.hash(password, 10);
-
-    await pool.query(
-      "INSERT INTO users (username, password, role) VALUES ($1,$2,$3)",
-      [username, hash, role || "user"]
-    );
-
-    res.json({ message: "Usuário criado" });
-  } catch (err) {
-    res.status(400).json({ error: "Usuário já existe" });
-  }
-});
-
 app.post("/login", async (req, res) => {
+
   const { username, password } = req.body;
 
   const result = await pool.query(
@@ -111,9 +73,7 @@ app.post("/login", async (req, res) => {
   res.json({ token, role: user.role });
 });
 
-/* ================================
-   🏢 FORNECEDORES
-================================ */
+/* ================= FORNECEDORES ================= */
 
 pool.query(`
 CREATE TABLE IF NOT EXISTS suppliers (
@@ -133,9 +93,7 @@ app.post("/suppliers", authenticateToken, async (req, res) => {
   res.json({ message: "Fornecedor criado" });
 });
 
-/* ================================
-   📦 PRODUTOS
-================================ */
+/* ================= PRODUTOS ================= */
 
 pool.query(`
 CREATE TABLE IF NOT EXISTS products (
@@ -143,13 +101,19 @@ CREATE TABLE IF NOT EXISTS products (
   codigo VARCHAR(100),
   nome VARCHAR(200),
   fornecedor VARCHAR(200),
+  sku VARCHAR(100),
+  cor VARCHAR(100),
+  tamanho VARCHAR(100),
   estoque INTEGER,
   preco_custo NUMERIC,
-  preco_venda NUMERIC
+  preco_venda NUMERIC,
+  variacao VARCHAR(50),
+  barcode VARCHAR(100)
 );
 `);
 
 app.get("/products", authenticateToken, async (req, res) => {
+
   const busca = req.query.q || "";
 
   const result = await pool.query(
@@ -161,93 +125,26 @@ app.get("/products", authenticateToken, async (req, res) => {
 });
 
 app.post("/products", authenticateToken, async (req, res) => {
-  const { codigo, nome, fornecedor, estoque, preco_custo, preco_venda } = req.body;
 
-  await pool.query(
-    `INSERT INTO products 
-     (codigo,nome,fornecedor,estoque,preco_custo,preco_venda)
-     VALUES ($1,$2,$3,$4,$5,$6)`,
-    [codigo,nome,fornecedor,estoque,preco_custo,preco_venda]
-  );
+  const {
+    codigo, nome, fornecedor,
+    sku, cor, tamanho,
+    estoque, preco_custo,
+    preco_venda, variacao, barcode
+  } = req.body;
 
-  res.json({ message: "Produto cadastrado" });
+  const result = await pool.query(`
+    INSERT INTO products
+    (codigo,nome,fornecedor,sku,cor,tamanho,
+     estoque,preco_custo,preco_venda,variacao,barcode)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+    RETURNING *
+  `,
+  [codigo,nome,fornecedor,sku,cor,tamanho,
+   estoque,preco_custo,preco_venda,variacao,barcode]);
+
+  res.json(result.rows[0]);
 });
-
-app.put("/products/:id", authenticateToken, async (req, res) => {
-  const { codigo, nome, fornecedor, estoque, preco_custo, preco_venda } = req.body;
-
-  await pool.query(
-    `UPDATE products SET
-     codigo=$1,nome=$2,fornecedor=$3,
-     estoque=$4,preco_custo=$5,preco_venda=$6
-     WHERE id=$7`,
-    [codigo,nome,fornecedor,estoque,preco_custo,preco_venda,req.params.id]
-  );
-
-  res.json({ message: "Produto atualizado" });
-});
-
-app.delete("/products/:id", authenticateToken, async (req, res) => {
-  await pool.query("DELETE FROM products WHERE id=$1", [req.params.id]);
-  res.json({ message: "Produto excluído" });
-});
-
-/* ================================
-   🌐 ROTA PRINCIPAL
-================================ */
-
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/login.html"));
-});
-
-/* ================================
-   🚀 START SERVER
-================================ */
-
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log("Servidor rodando na porta " + PORT);
-});
-
-app.put("/products/:id/campo", async (req,res)=>{
-
-  const { campo, valor } = req.body;
-  const { id } = req.params;
-
-  const camposPermitidos = [
-    "nome","fornecedor","sku","cor",
-    "tamanho","estoque","preco_custo","preco_venda"
-  ];
-
-  if(!camposPermitidos.includes(campo)){
-    return res.status(400).json({error:"Campo inválido"});
-  }
-
-  await pool.query(
-    `UPDATE products SET ${campo}=$1 WHERE id=$2`,
-    [valor, id]
-  );
-
-  res.json({success:true});
-});
-
-async function atualizarCampo(id, campo, valor){
-
-  await fetch("/products/" + id + "/campo", {
-    method: "PUT",
-    headers:{
-      "Content-Type":"application/json",
-      Authorization:"Bearer " + token
-    },
-    body: JSON.stringify({
-      campo: campo,
-      valor: valor.toUpperCase()
-    })
-  });
-
-  console.log("Atualizado com sucesso");
-}
 
 app.put("/products/:id", authenticateToken, async (req,res)=>{
 
@@ -257,30 +154,49 @@ app.put("/products/:id", authenticateToken, async (req,res)=>{
 
   const { id } = req.params;
 
-  const nome = req.body.nome || "";
-  const fornecedor = req.body.fornecedor || "";
-  const estoque = parseInt(req.body.estoque) || 0;
-  const preco_custo = parseFloat(req.body.preco_custo) || 0;
-  const preco_venda = parseFloat(req.body.preco_venda) || 0;
+  const {
+    nome, fornecedor, sku,
+    cor, tamanho, estoque,
+    preco_custo, preco_venda,
+    variacao, barcode
+  } = req.body;
 
-  try{
+  await pool.query(`
+    UPDATE products SET
+    nome=$1,
+    fornecedor=$2,
+    sku=$3,
+    cor=$4,
+    tamanho=$5,
+    estoque=$6,
+    preco_custo=$7,
+    preco_venda=$8,
+    variacao=$9,
+    barcode=$10
+    WHERE id=$11
+  `,
+  [nome,fornecedor,sku,cor,tamanho,
+   estoque,preco_custo,preco_venda,
+   variacao,barcode,id]);
 
-    await pool.query(`
-      UPDATE products SET
-      nome=$1,
-      fornecedor=$2,
-      estoque=$3,
-      preco_custo=$4,
-      preco_venda=$5
-      WHERE id=$6
-    `,
-    [nome, fornecedor, estoque, preco_custo, preco_venda, id]);
+  res.json({success:true});
+});
 
-    res.json({success:true});
+app.delete("/products/:id", authenticateToken, async (req,res)=>{
+  await pool.query("DELETE FROM products WHERE id=$1",[req.params.id]);
+  res.json({success:true});
+});
 
-  }catch(err){
-    console.log(err);
-    res.status(500).json({error:"Erro ao atualizar"});
-  }
+/* ================= ROOT ================= */
 
+app.get("/", (req,res)=>{
+  res.sendFile(path.join(__dirname,"../frontend/login.html"));
+});
+
+/* ================= START ================= */
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, ()=>{
+  console.log("Servidor rodando na porta " + PORT);
 });

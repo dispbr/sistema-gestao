@@ -196,9 +196,14 @@ async function salvar(){
     codigo: codigo.value,
     nome: nome.value,
     fornecedor: fornecedor.value,
+    sku: sku.value,
+    cor: cor.value,
+    tamanho: tamanho.value,
     estoque: estoque.value,
     preco_custo: limparMoeda(custo.value),
-    preco_venda: limparMoeda(venda.value)
+    preco_venda: limparMoeda(venda.value),
+    variacao: variacao.value,
+    barcode: barcode.value
   };
 
   const res = await fetch("/products",{
@@ -212,8 +217,9 @@ async function salvar(){
 
   const produto = await res.json();
 
-  adicionarLinha(produto); // agora tem ID real
+  adicionarLinha(produto);
 }
+
 
 /* ================= ADICIONAR LINHA ================= */
 
