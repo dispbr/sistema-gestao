@@ -1,240 +1,346 @@
-* {
-  box-sizing: border-box;
-  font-family: "Inter", "Segoe UI", Arial, sans-serif;
+*{
+  box-sizing:border-box;
+  font-family:"Inter","Segoe UI",Arial,sans-serif;
 }
 
-body {
-  margin: 0;
+body{
+  margin:0;
 }
 
-/* ================= FUNDO ================= */
-.bg {
-  min-height: 100vh;
-  padding: 32px;
-  background: radial-gradient(circle at top, #1e3a5f, #08162a 70%);
+/* FUNDO */
+.bg{
+  min-height:100vh;
+  padding:40px 20px;
+  background: radial-gradient(circle at top,#1e3a5f,#08162a 70%);
+  display:flex;
+  justify-content:center;
 }
 
-/* ================= CARD PRINCIPAL ================= */
-.card {
-  background: #fff;
-  border-radius: 22px;
-  padding: 32px;
-  max-width: 1200px;
-  margin: auto;
-  box-shadow: 0 30px 60px rgba(0,0,0,.35);
+/* CARD */
+.card{
+  background:#fff;
+  border-radius:22px;
+  padding:40px;
+  width:100%;
+  max-width:1300px;
+  box-shadow:0 30px 60px rgba(0,0,0,.35);
 }
 
-/* ================= TITULO ================= */
-.title {
-  margin: 0 0 20px;
-  font-size: 22px;
-  color: #0b1f3a;
+.title{
+  margin-bottom:30px;
+  font-size:26px;
+  color:#0b1f3a;
+  text-align:center;
 }
 
-/* ================= BOTÕES TOPO ================= */
-.actions {
-  display: flex;
-  gap: 14px;
-  margin-bottom: 28px;
+/* BOTÕES */
+.actions{
+  display:flex;
+  gap:15px;
+  justify-content:center;
+  margin-bottom:30px;
 }
 
-.btn {
-  border: none;
-  padding: 10px 18px;
-  border-radius: 8px;
-  font-weight: 600;
-  color: #fff;
-  cursor: pointer;
-  transition: 0.2s ease;
+.btn{
+  border:none;
+  padding:10px 20px;
+  border-radius:8px;
+  font-weight:600;
+  color:#fff;
+  cursor:pointer;
+  transition:.2s;
 }
 
-.btn:hover {
-  transform: translateY(-2px);
-  opacity: 0.9;
+.btn:hover{
+  transform:translateY(-2px);
+  opacity:.9;
 }
 
-.green { background: #12b76a; }
-.red   { background: #f04438; }
-.blue  { background: #2970ff; }
-.purple{ background: #7c5cff; }
+.green{ background:#12b76a; }
+.red{ background:#f04438; }
+.blue{ background:#2970ff; }
+.purple{ background:#7c5cff; }
 
-.small {
-  height: 42px;
+.small{
+  padding:6px 12px;
+  font-size:12px;
 }
 
-/* ================= GRID FORM ================= */
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px 24px;
+/* GRID MELHOR DISTRIBUÍDO */
+.form-grid{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:20px 30px;
+  margin-bottom:30px;
 }
 
-label {
-  font-size: 13px;
-  color: #344054;
-  margin-bottom: 6px;
-  display: block;
+label{
+  font-size:13px;
+  color:#344054;
+  margin-bottom:6px;
+  display:block;
 }
 
-input, select {
-  width: 100%;
-  height: 42px;
-  padding: 0 12px;
-  border-radius: 8px;
-  border: 1px solid #d0d5dd;
-  font-size: 14px;
-  transition: 0.2s;
+input,select{
+  width:100%;
+  height:44px;
+  padding:0 12px;
+  border-radius:8px;
+  border:1px solid #d0d5dd;
+  font-size:14px;
+  transition:.2s;
 }
 
-input:focus, select:focus {
-  outline: none;
-  border-color: #0b1f3a;
+input:focus,select:focus{
+  outline:none;
+  border-color:#0b1f3a;
 }
 
-input:disabled {
-  background: #f2f4f7;
+input:disabled{
+  background:#f2f4f7;
 }
 
-/* ================= CÓDIGO DE BARRAS ================= */
-.barcode {
-  display: flex;
-  gap: 10px;
-  align-items: flex-end;
+/* BOTÃO PRINCIPAL */
+.btn-submit{
+  margin-bottom:20px;
+  width:100%;
+  height:48px;
+  border-radius:12px;
+  border:none;
+  background:linear-gradient(145deg,#0b1f3a,#12325c);
+  color:#fff;
+  font-weight:600;
+  font-size:16px;
+  cursor:pointer;
 }
 
-/* ================= BOTÃO PRINCIPAL ================= */
-.btn-submit {
-  margin-top: 28px;
-  width: 100%;
-  height: 46px;
-  border-radius: 12px;
-  border: none;
-  background: linear-gradient(145deg, #0b1f3a, #12325c);
-  color: white;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.2s;
+/* BUSCA */
+.search{
+  margin-bottom:20px;
+  width:100%;
+  height:44px;
+  padding:0 14px;
+  border-radius:8px;
+  border:1px solid #d0d5dd;
 }
 
-.btn-submit:hover {
-  transform: translateY(-2px);
+/* TABELA */
+.tabela{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:10px;
+  font-size:14px;
 }
 
-/* ================= BUSCA ================= */
-.search {
-  margin-top: 16px;
-  width: 100%;
-  height: 42px;
-  padding: 0 14px;
-  border-radius: 8px;
-  border: 1px solid #d0d5dd;
+.tabela th{
+  background:#0b1f3a;
+  color:white;
+  padding:12px;
+  text-align:center;
 }
 
-/* ================= TABELA ================= */
-.tabela {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-  font-size: 14px;
+.tabela td{
+  padding:12px;
+  border-bottom:1px solid #e5e7eb;
+  text-align:center;
 }
 
-.tabela th {
-  background: #0b1f3a;
-  color: white;
-  padding: 12px;
-  text-align: center;
+.tabela tr:hover{
+  background:#f3f4f6;
 }
 
-.tabela td {
-  padding: 12px;
-  border-bottom: 1px solid #e5e7eb;
-  text-align: center;
+/* MODAL */
+.modal-bg{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.6);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:1000;
 }
 
-.tabela tr:hover {
-  background: #f9fafb;
+.modal{
+  background:#fff;
+  width:700px;
+  border-radius:18px;
+  padding:30px;
+  box-shadow:0 30px 60px rgba(0,0,0,.35);
 }
 
-/* ================= MODAL FUNDO ================= */
-.modal-bg {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.6);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
+.btn-close{
+  margin-top:20px;
+  width:100%;
+  height:40px;
+  border:none;
+  border-radius:10px;
+  background:#6b7280;
+  color:#fff;
+  cursor:pointer;
+}
+a*{
+  box-sizing:border-box;
+  font-family:"Inter","Segoe UI",Arial,sans-serif;
 }
 
-/* ================= MODAL CARD (MESMO PADRÃO DO SISTEMA) ================= */
-.modal {
-  background: #fff;
-  width: 800px;
-  max-height: 85vh;
-  border-radius: 22px;
-  padding: 30px;
-  box-shadow: 0 30px 60px rgba(0,0,0,.35);
-  display: flex;
-  flex-direction: column;
+body{
+  margin:0;
 }
 
-/* ================= MODAL HEADER ================= */
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
+/* FUNDO */
+.bg{
+  min-height:100vh;
+  padding:40px 20px;
+  background: radial-gradient(circle at top,#1e3a5f,#08162a 70%);
+  display:flex;
+  justify-content:center;
 }
 
-.modal-header h3 {
-  margin: 0;
-  color: #0b1f3a;
+/* CARD */
+.card{
+  background:#fff;
+  border-radius:22px;
+  padding:40px;
+  width:100%;
+  max-width:1300px;
+  box-shadow:0 30px 60px rgba(0,0,0,.35);
 }
 
-.close {
-  background: none;
-  border: none;
-  font-size: 22px;
-  cursor: pointer;
+.title{
+  margin-bottom:30px;
+  font-size:26px;
+  color:#0b1f3a;
+  text-align:center;
 }
 
-/* ================= MODAL BODY ================= */
-.modal-body {
-  overflow-y: auto;
+/* BOTÕES */
+.actions{
+  display:flex;
+  justify-content:center;
+  margin-bottom:30px;
 }
 
-/* ================= LISTA FORNECEDORES ================= */
-.lista .item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border: 1px solid #e5e7eb;
-  padding: 10px 12px;
-  border-radius: 8px;
-  margin-bottom: 10px;
-  transition: 0.2s;
+.btn{
+  border:none;
+  padding:10px 20px;
+  border-radius:8px;
+  font-weight:600;
+  color:#fff;
+  cursor:pointer;
+  transition:.2s;
 }
 
-.lista .item:hover {
-  background: #f3f4f6;
+.btn:hover{
+  transform:translateY(-2px);
 }
 
-.delete {
-  background: none;
-  border: none;
-  color: #f04438;
-  font-size: 16px;
-  cursor: pointer;
+.green{ background:#12b76a; }
+.red{ background:#f04438; }
+.blue{ background:#2970ff; }
+
+.small{
+  padding:6px 12px;
+  font-size:12px;
 }
 
-/* ================= BOTÃO FECHAR MODAL ================= */
-.btn-close {
-  margin-top: 15px;
-  height: 44px;
-  border-radius: 10px;
-  border: none;
-  background: #6b7280;
-  color: white;
-  font-weight: 600;
-  cursor: pointer;
+/* GRID */
+.form-grid{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:20px 30px;
+  margin-bottom:30px;
+}
+
+label{
+  font-size:13px;
+  color:#344054;
+  margin-bottom:6px;
+  display:block;
+}
+
+input,select{
+  width:100%;
+  height:44px;
+  padding:0 12px;
+  border-radius:8px;
+  border:1px solid #d0d5dd;
+}
+
+input:disabled{
+  background:#f2f4f7;
+}
+
+/* BOTÃO PRINCIPAL */
+.btn-submit{
+  margin-bottom:20px;
+  width:100%;
+  height:48px;
+  border-radius:12px;
+  border:none;
+  background:linear-gradient(145deg,#0b1f3a,#12325c);
+  color:#fff;
+  font-weight:600;
+  font-size:16px;
+}
+
+/* BUSCA */
+.search{
+  margin-bottom:20px;
+  width:100%;
+  height:44px;
+  padding:0 14px;
+  border-radius:8px;
+  border:1px solid #d0d5dd;
+}
+
+/* TABELA */
+.tabela{
+  width:100%;
+  border-collapse:collapse;
+}
+
+.tabela th{
+  background:#0b1f3a;
+  color:white;
+  padding:12px;
+  text-align:center;
+}
+
+.tabela td{
+  padding:12px;
+  border-bottom:1px solid #e5e7eb;
+  text-align:center;
+}
+
+.tabela tr:hover{
+  background:#f3f4f6;
+}
+
+/* MODAL */
+.modal-bg{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.6);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:1000;
+}
+
+.modal{
+  background:#fff;
+  width:700px;
+  border-radius:18px;
+  padding:30px;
+  box-shadow:0 30px 60px rgba(0,0,0,.35);
+}
+
+.btn-close{
+  margin-top:20px;
+  width:100%;
+  height:40px;
+  border:none;
+  border-radius:10px;
+  background:#6b7280;
+  color:#fff;
 }

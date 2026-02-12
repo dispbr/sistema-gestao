@@ -209,3 +209,42 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("Servidor rodando na porta " + PORT);
 });
+
+app.put("/products/:id/campo", async (req,res)=>{
+
+  const { campo, valor } = req.body;
+  const { id } = req.params;
+
+  const camposPermitidos = [
+    "nome","fornecedor","sku","cor",
+    "tamanho","estoque","preco_custo","preco_venda"
+  ];
+
+  if(!camposPermitidos.includes(campo)){
+    return res.status(400).json({error:"Campo inválido"});
+  }
+
+  await pool.query(
+    `UPDATE products SET ${campo}=$1 WHERE id=$2`,
+    [valor, id]
+  );
+
+  res.json({success:true});
+});
+
+async function atualizarCampo(id, campo, valor){
+
+  await fetch("/products/" + id + "/campo", {
+    method: "PUT",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer " + token
+    },
+    body: JSON.stringify({
+      campo: campo,
+      valor: valor.toUpperCase()
+    })
+  });
+
+  console.log("Atualizado com sucesso");
+}
