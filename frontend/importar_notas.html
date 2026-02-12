@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Importar Notas Fiscais</title>
+  <link rel="stylesheet" href="importar_notas.css">
+</head>
+<body>
+
+<main class="bg">
+  <section class="card">
+
+    <!-- Título -->
+    <h2 class="title">← Importar Notas Fiscais (XML)</h2>
+    <p class="subtitle">
+      Selecione um ou mais arquivos XML de NF-e/NFC-e para importar.
+    </p>
+
+    <!-- Upload -->
+    <div class="upload-box">
+      <input type="file" multiple accept=".xml">
+    </div>
+
+    <!-- Botão importar -->
+    <button class="btn-submit">Importar Notas Fiscais</button>
+
+    <!-- Separador -->
+    <hr>
+
+    <!-- Notas importadas -->
+    <h3 class="section-title">📄 Notas Fiscais Importadas</h3>
+
+    <!-- Filtros -->
+    <div class="filters">
+
+      <div>
+        <label>🔎 Nº Pedido</label>
+        <input placeholder="Digite o número do pedido...">
+      </div>
+
+      <div>
+        <label>📦 Código Produto</label>
+        <input placeholder="Digite o código do produto...">
+      </div>
+
+      <div>
+        <label>👤 Destinatário</label>
+        <input placeholder="Digite o nome do destinatário...">
+      </div>
+
+      <button class="btn-

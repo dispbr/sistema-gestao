@@ -3,102 +3,126 @@
 <head>
 <meta charset="UTF-8">
 <title>Dashboard</title>
-<link rel="stylesheet" href="dashboard.css">
+<link rel="stylesheet" href="login.css">
+
+<style>
+.dashboard-container {
+  width: 900px;
+  text-align: center;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 25px;
+  margin-top: 40px;
+}
+
+.card-btn {
+  background: linear-gradient(145deg, #0b1f3a, #12325c);
+  color: white;
+  padding: 40px 20px;
+  border-radius: 18px;
+  font-size: 18px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s;
+  border: none;
+}
+
+.card-btn:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+}
+
+.logout-btn {
+  margin-top: 40px;
+  background: #b91c1c;
+  padding: 12px 25px;
+  border-radius: 10px;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+</style>
+</head>
+
+<body class="login-bg">
+
+<div class="login-card dashboard-container">
+
+<h1>📊 Painel Principal</h1>
+<p class="subtitle">Controle total da sua operação</p>
+
+<div class="dashboard-grid">
+
+  <button class="card-btn"
+    onclick="window.location.href='cadastro_produtos.html'">
+    📦 Cadastro de Produtos
+  </button>
+
+  <button class="card-btn"
+    onclick="window.location.href='importar_marketplace.html'">
+    🏢 Marketplace
+  </button>
+
+  <button class="card-btn"
+    onclick="window.location.href='impostos.html'">
+    💰 Impostos
+  </button>
+
+  <button class="card-btn"
+    onclick="window.location.href='notas.html'">
+    📄 Notas Fiscais
+  </button>
+
+  <button class="card-btn"
+    onclick="window.location.href='devolucoes.html'">
+    🔄 Devoluções
+  </button>
+
+  <button class="card-btn"
+    id="adminBtn"
+    onclick="window.location.href='admin.html'">
+    👥 Administração
+  </button>
+
+</div>
+
+<button class="logout-btn" onclick="logout()">Sair</button>
+
+</div>
 
 <script>
-// 🔐 Proteção de acesso
+
+/* =========================
+   🔐 PROTEÇÃO LOGIN
+========================= */
+
 const token = localStorage.getItem("token");
+const role = localStorage.getItem("role");
+
 if (!token) {
   window.location.href = "login.html";
 }
-</script>
 
-<style>
-.user-area {
-  display: flex;
-  align-items: center;
-  gap: 15px;
+/* =========================
+   👥 CONTROLE ADMIN
+========================= */
+
+if (role !== "admin") {
+  document.getElementById("adminBtn").style.display = "none";
 }
 
-.user-area span {
-  font-weight: bold;
-}
-</style>
-
-</head>
-<body>
-
-<!-- Topbar -->
-<header class="topbar">
-  <div>
-    <h1>Gestão de Produtos 📦</h1>
-    <p>Controle total de sua operação</p>
-  </div>
-
-  <div class="user-area">
-    👤 <span id="nomeUsuario"></span>
-    <button onclick="logout()">Sair</button>
-  </div>
-</header>
-
-<!-- Conteúdo -->
-<main class="dashboard-bg">
-  <div class="cards">
-
-    <div class="card purple">
-      <span class="icon">＋</span>
-      
-<button onclick="window.location.href='cadastro_produtos.html'" class="btn-login">
-📦 Cadastro de Produtos
-</button>
-    </div>
-
-    <div class="card pink">
-      <span class="icon">⚡</span>
-      <p>Marketplace</p>
-    </div>
-
-    <div class="card blue">
-      <span class="icon">📄</span>
-      <p>Notas Fiscais</p>
-    </div>
-
-    <div class="card green">
-      <span class="icon">💲</span>
-      <p>Impostos</p>
-    </div>
-
-    <div class="card orange">
-      <span class="icon">⬆</span>
-      <p>Gerenciar<br>Devoluções</p>
-    </div>
-
-    <!-- 🔥 Card Admin aparece só para admin -->
-    <div id="adminCard"></div>
-
-  </div>
-</main>
-
-<script>
-const role = localStorage.getItem("role");
-const username = localStorage.getItem("username");
-
-document.getElementById("nomeUsuario").innerText = username || "Usuário";
-
-// 🔥 Mostrar card Administração somente para admin
-if (role === "admin") {
-  document.getElementById("adminCard").innerHTML = `
-    <div class="card dark" onclick="window.location='admin.html'">
-      <span class="icon">👥</span>
-      <p>Administração</p>
-    </div>
-  `;
-}
+/* =========================
+   🚪 LOGOUT
+========================= */
 
 function logout() {
   localStorage.clear();
   window.location.href = "login.html";
 }
+
 </script>
 
 </body>

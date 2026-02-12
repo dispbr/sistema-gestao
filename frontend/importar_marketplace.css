@@ -1,0 +1,59 @@
+* {
+  box-sizing: border-box;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+}
+
+/* Fundo */
+.bg {
+  min-height: 100vh;
+  padding: 32px;
+  background: radial-gradient(circle at top, #1e3a5f, #08162a 70%);
+}
+
+/* Card */
+.card {
+  background: #fff;
+  border-radius: 22px;
+  padding: 32px;
+  max-width: 1100px;
+  margin: auto;
+  box-shadow: 0 30px 60px rgba(0,0,0,.35);
+}
+
+/* Título */
+.title {
+  margin: 0 0 12px;
+  font-size: 22px;
+  color: #0b1f3a;
+}
+
+/* Subtítulo */
+.subtitle {
+  margin: 0 0 22px;
+  font-size: 14px;
+  color: #667085;
+}
+
+/* Upload */
+.upload-box {
+  border: 1px solid #d0d5dd;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 22px;
+}
+
+/* Botão principal */
+.btn-submit {
+  width: 100%;
+  height: 46px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(145deg, #0b1f3a, #12325c);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}

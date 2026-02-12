@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Impostos - Simples Nacional</title>
+  <link rel="stylesheet" href="impostos_simples.css">
+</head>
+<body>
+
+<main class="bg">
+  <section class="card">
+
+    <!-- Título -->
+    <h2 class="title">← Impostos – Simples Nacional</h2>
+    <p class="subtitle">
+      Cálculo de impostos baseado nas notas fiscais emitidas.
+    </p>
+
+    <!-- Filtros -->
+    <div class="form-grid">
+
+      <div>
+        <label>Período Inicial</label>
+        <input type="date">
+      </div>
+
+      <div>
+        <label>Período Final</label>
+        <input type="date">
+      </div>
+
+      <div>
+        <label>CNPJ</label>
+        <input placeholder="00.000.000/0001-00">
+      </div>
+
+      <div>
+        <label>Regime</label>
+        <input value="Simples Nacional" disabled>
+      </div>
+
+    </div>
+
+    <!-- Botão -->
+    <button class="btn-submit">Calcular Impostos</button>
+
+    <!-- Resumo -->
+    <h3 class="section-title">📊 Resumo do Período</h3>
+
+    <div class="summary-grid">
+
+      <div class="summary-card">
+        <span>Total Faturado</span>
+        <strong>R$ 0,00</strong>
+      </div>
+
+      <div class="summary-card">
+        <span>Base de Cálculo</span>
+        <strong>R$ 0,00</strong>
+      </div>
+
+      <div class="summary-card">
+        <span>Alíquota (%)</span>
+        <strong>0,00%</strong>
+      </div>
+
+      <div class="summary-card highlight">
+        <span>Imposto a Pagar</span>
+        <strong>R$ 0,00</strong>
+      </div>
+
+    </div>
+
+    <!-- Detalhamento -->
+    <h3 class="section-title">📋 Detalhamento por Tributo</h3>
+
+    <div class="table">
+
+      <div class="row header">
+        <span>Tributo</span>
+        <span>Base (R$)</span>
+        <span>Alíquota</span>
+        <span>Valor (R$)</span>
+      </div>
+
+      <div class="row">
+        <span>IRPJ</span>
+        <span

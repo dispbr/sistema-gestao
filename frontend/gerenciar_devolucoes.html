@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Gerenciar Devoluções</title>
+  <link rel="stylesheet" href="gerenciar_devolucoes.css">
+</head>
+<body>
+
+<main class="bg">
+  <section class="card">        
+
+    <!-- Título -->
+    <h2 class="title">← Gerenciar Devoluções</h2>
+
+    <!-- Formulário -->
+    <div class="form-grid">
+
+      <div>
+        <label>Data Recebimento</label>
+        <input type="date">
+      </div>
+
+      <div class="row-right">
+        <label>Número do Pedido</label>
+        <div class="search-row">
+          <input placeholder="Ex: PED001">
+          <button class="btn-search">Buscar</button>
+        </div>
+      </div>
+
+      <div>
+        <label>Data do Pedido</label>
+        <input type="date">
+      </div>
+
+      <div>
+        <label>NR Nota Fiscal</label>
+        <input placeholder="Ex: NF123456">
+      </div>
+
+      <div>
+        <label>Destinatário</label>
+        <input placeholder="Nome do cliente">
+      </div>
+
+      <div>
+        <label>SKU</label>
+        <input placeholder="Ex: SKU123">
+      </div>
+
+      <div>
+        <label>Quantidade</label>
+        <input type="number" value="1">
+      </div>
+
+      <div>
+        <label>Valor Nota (R$)</label>
+        <input value="0.00">
+      </div>
+
+      <div class="full">
+        <label>Observação</label>
+        <textarea placeholder="Adicione observações sobre a devolução"></textarea>
+      </div>
+
+    </div>
+
+    <!-- Botão principal -->
+    <button class="btn-submit">Registrar Devolução</button>
+
+    <!-- Rodapé -->
+    <h3 class="section-title">📋 Devoluções Registradas</h3>
+
+  </section>
+</main>
+
+</body>
+</html>
