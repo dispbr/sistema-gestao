@@ -4,8 +4,45 @@
 <meta charset="UTF-8">
 <title>Cadastro de Produtos</title>
 <link rel="stylesheet" href="cadastro_produtos.css">
+
+<style>
+
+/* ===== TOPO VOLTAR ===== */
+.topbar{
+ width:100%;
+ background:#08162a;
+ padding:15px 25px;
+ position:fixed;
+ top:0;
+ left:0;
+ z-index:1000;
+}
+.btn-voltar{
+ background:#0b1f3a;
+ color:white;
+ border:none;
+ padding:8px 15px;
+ border-radius:6px;
+ cursor:pointer;
+}
+.bg{ padding-top:80px; }
+
+.tabela td,.tabela th{
+ text-align:center;
+ padding:10px;
+}
+.modal-body{
+ max-height:300px;
+ overflow:auto;
+}
+</style>
 </head>
+
 <body>
+
+<div class="topbar">
+ <button class="btn-voltar" onclick="window.location='dashboard.html'">⬅ Voltar</button>
+</div>
 
 <main class="bg">
 <section class="card">
@@ -13,267 +50,275 @@
 <h2 class="title">📦 Cadastro de Produtos</h2>
 
 <div class="actions">
-  <button class="btn green" onclick="abrirModal()">Gerenciar Fornecedores</button>
-  <button class="btn blue" onclick="exportarExcel()">Exportar Excel</button>
+<button class="btn green" onclick="abrirModal()">Gerenciar Fornecedores</button>
+<button class="btn blue" onclick="alterar()">Alterar</button>
+<button class="btn purple" onclick="salvarEdicao()">Salvar</button>
 </div>
 
 <div class="form-grid">
 
-  <div>
-    <label>Código do Produto</label>
-    <input id="codigo">
-  </div>
+<input id="id" hidden>
 
-  <div>
-    <label>Nome do Produto</label>
-    <input id="nome">
-  </div>
+<div>
+<label>Código</label>
+<input id="codigo" readonly>
+</div>
 
-  <div>
-    <label>Fornecedor</label>
-    <select id="fornecedor"></select>
-  </div>
+<div>
+<label>Nome</label>
+<input id="nome">
+</div>
 
-  <div>
-    <label>SKU</label>
-    <input id="sku">
-  </div>
+<div>
+<label>Fornecedor</label>
+<select id="fornecedor"></select>
+</div>
 
-  <div>
-    <label>Código de Barras</label>
-    <input id="barcode">
-  </div>
+<div>
+<label>SKU</label>
+<input id="sku">
+</div>
 
-  <div>
-    <label>Cor</label>
-    <input id="cor">
-  </div>
+<div>
+<label>Cor</label>
+<input id="cor">
+</div>
 
-  <div>
-    <label>Tamanho</label>
-    <input id="tamanho">
-  </div>
+<div>
+<label>Tamanho</label>
+<input id="tamanho">
+</div>
 
-  <div>
-    <label>SKU Completo (Automático)</label>
-    <input id="skuCompleto" disabled>
-  </div>
+<div>
+<label>SKU Completo</label>
+<input id="skuCompleto" disabled>
+</div>
 
-  <div>
-    <label>Estoque</label>
-    <input id="estoque" type="number">
-  </div>
+<div>
+<label>Estoque</label>
+<input id="estoque" type="number">
+</div>
 
-  <div>
-    <label>Preço Custo</label>
-    <input id="custo" type="number" oninput="calcularVariacao()">
-  </div>
+<div>
+<label>Preço Custo</label>
+<input id="custo" type="number">
+</div>
 
-  <div>
-    <label>Preço Venda</label>
-    <input id="venda" type="number" oninput="calcularVariacao()">
-  </div>
+<div>
+<label>Preço Venda</label>
+<input id="venda" type="number">
+</div>
 
-  <div>
-    <label>Variação %</label>
-    <input id="variacao" disabled>
-  </div>
+<div>
+<label>Código Barras</label>
+<div style="display:flex;">
+<input id="barcode" style="flex:1;">
+<button onclick="gerarCodigo()">Gerar</button>
+</div>
+</div>
 
 </div>
 
 <button class="btn-submit" onclick="salvar()">Adicionar Produto</button>
 
-<input class="search" placeholder="🔍 Buscar produto..."
-onkeyup="buscarProdutos(this.value)">
+<input class="search" placeholder="Buscar..." onkeyup="buscar(this.value)">
 
 <table class="tabela">
 <thead>
 <tr>
-<th>ID</th>
+<th style="display:none;">ID</th>
 <th>Código</th>
 <th>Nome</th>
 <th>Fornecedor</th>
+<th>SKU</th>
+<th>Cor</th>
+<th>Tamanho</th>
 <th>Estoque</th>
 <th>Venda</th>
-<th>%</th>
+<th>Barras</th>
 <th>Ação</th>
 </tr>
 </thead>
-<tbody id="listaProdutos"></tbody>
+<tbody id="lista"></tbody>
 </table>
 
 </section>
 </main>
 
-<!-- MODAL FORNECEDOR -->
+<!-- MODAL -->
 <div class="modal-bg" id="modalFornecedor">
-  <div class="modal">
-    <div class="modal-header">
-      <h3>Gerenciar Fornecedores</h3>
-      <button onclick="fecharModal()">×</button>
-    </div>
+<div class="modal">
+<h3>Fornecedores</h3>
 
-    <div class="modal-body">
-      <input id="novoFornecedor" placeholder="Novo fornecedor">
-      <button onclick="criarFornecedor()">Adicionar</button>
-      <div id="listaFornecedores"></div>
-    </div>
+<input id="novoFornecedor" placeholder="Novo fornecedor">
+<button onclick="criarFornecedor()">Adicionar</button>
 
-    <button class="btn-close" onclick="fecharModal()">Fechar</button>
-  </div>
+<div id="listaFornecedores"></div>
+
+<button onclick="fecharModal()">Fechar</button>
+</div>
 </div>
 
 <script>
-const API = "";
-const token = localStorage.getItem("token");
-if(!token) window.location="login.html";
+const token=localStorage.getItem("token");
 
-/* ========================
-   SKU AUTOMÁTICO
-======================== */
-function gerarSKUCompleto(){
-  skuCompleto.value = sku.value + "-" + cor.value + "-" + tamanho.value;
+/* ===== GERAR CODIGO SEQUENCIAL ===== */
+async function gerarCodigoProduto(){
+ const res=await fetch("/products?q=",{
+  headers:{Authorization:"Bearer "+token}
+ });
+ const data=await res.json();
+
+ let maior=0;
+ data.forEach(p=>{
+  const num=parseInt(p.codigo);
+  if(num>maior) maior=num;
+ });
+
+ const novo=(maior+1).toString().padStart(4,"0");
+ codigo.value=novo;
 }
 
-sku.oninput = gerarSKUCompleto;
-cor.oninput = gerarSKUCompleto;
-tamanho.oninput = gerarSKUCompleto;
+/* SKU AUTOMÁTICO */
+sku.oninput=()=> skuCompleto.value=sku.value+"-"+cor.value+"-"+tamanho.value;
+cor.oninput=sku.oninput;
+tamanho.oninput=sku.oninput;
 
-/* ========================
-   VARIAÇÃO %
-======================== */
-function calcularVariacao(){
-  const custoVal = parseFloat(custo.value);
-  const vendaVal = parseFloat(venda.value);
-
-  if(!custoVal || !vendaVal){
-    variacao.value = "";
-    return;
-  }
-
-  const perc = ((vendaVal - custoVal) / custoVal) * 100;
-  variacao.value = perc.toFixed(2) + "%";
+/* GERAR BARRAS */
+function gerarCodigo(){
+ barcode.value=Math.floor(Math.random()*999999999999);
 }
 
-/* ========================
-   SALVAR
-======================== */
+/* SALVAR */
 async function salvar(){
-  await fetch(API+"/products",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      Authorization:"Bearer "+token
-    },
-    body:JSON.stringify({
-      codigo:codigo.value,
-      nome:nome.value,
-      fornecedor:fornecedor.value,
-      estoque:estoque.value,
-      preco_custo:custo.value,
-      preco_venda:venda.value
-    })
-  });
+ await fetch("/products",{
+  method:"POST",
+  headers:{
+   "Content-Type":"application/json",
+   Authorization:"Bearer "+token
+  },
+  body:JSON.stringify({
+   codigo:codigo.value,
+   nome:nome.value,
+   fornecedor:fornecedor.value,
+   estoque:estoque.value,
+   preco_custo:custo.value,
+   preco_venda:venda.value
+  })
+ });
 
-  buscarProdutos("");
+ alert("Produto salvo com sucesso!");
+ gerarCodigoProduto();
+ buscar("");
 }
 
-/* ========================
-   BUSCAR
-======================== */
-async function buscarProdutos(q){
-  const res = await fetch(API+"/products?q="+q,{
-    headers:{Authorization:"Bearer "+token}
-  });
-  const dados = await res.json();
+/* BUSCAR */
+async function buscar(q){
+ const res=await fetch("/products?q="+q,{
+  headers:{Authorization:"Bearer "+token}
+ });
+ const data=await res.json();
 
-  listaProdutos.innerHTML="";
+ lista.innerHTML="";
 
-  dados.forEach(p=>{
-    const perc = ((p.preco_venda - p.preco_custo)/p.preco_custo)*100;
-
-    listaProdutos.innerHTML+=`
-    <tr>
-      <td>${p.id}</td>
-      <td>${p.codigo}</td>
-      <td>${p.nome}</td>
-      <td>${p.fornecedor}</td>
-      <td>${p.estoque}</td>
-      <td>R$ ${p.preco_venda}</td>
-      <td>${perc.toFixed(1)}%</td>
-      <td>
-        <button onclick="excluir(${p.id})">🗑</button>
-      </td>
-    </tr>`;
-  });
+ data.forEach(p=>{
+  lista.innerHTML+=`
+  <tr onclick="selecionar(${p.id},'${p.codigo}','${p.nome}','${p.fornecedor}',${p.estoque},${p.preco_custo},${p.preco_venda})">
+  <td style="display:none;">${p.id}</td>
+  <td>${p.codigo}</td>
+  <td>${p.nome}</td>
+  <td>${p.fornecedor}</td>
+  <td>${p.sku||""}</td>
+  <td>${p.cor||""}</td>
+  <td>${p.tamanho||""}</td>
+  <td>${p.estoque}</td>
+  <td>${p.preco_venda}</td>
+  <td>${p.barcode||""}</td>
+  <td><button onclick="excluir(${p.id})">🗑</button></td>
+  </tr>`;
+ });
 }
 
-/* ========================
-   EXCLUIR
-======================== */
+/* SELECIONAR */
+function selecionar(idp,c,n,f,e,cus,ven){
+ id.value=idp;
+ codigo.value=c;
+ nome.value=n;
+ fornecedor.value=f;
+ estoque.value=e;
+ custo.value=cus;
+ venda.value=ven;
+}
+
+/* ALTERAR */
+async function salvarEdicao(){
+ await fetch("/products/"+id.value,{
+  method:"PUT",
+  headers:{
+   "Content-Type":"application/json",
+   Authorization:"Bearer "+token
+  },
+  body:JSON.stringify({
+   codigo:codigo.value,
+   nome:nome.value,
+   fornecedor:fornecedor.value,
+   estoque:estoque.value,
+   preco_custo:custo.value,
+   preco_venda:venda.value
+  })
+ });
+
+ alert("Produto alterado com sucesso!");
+ buscar("");
+}
+
+/* EXCLUIR */
 async function excluir(id){
-  if(!confirm("Excluir produto?")) return;
-
-  await fetch(API+"/products/"+id,{
-    method:"DELETE",
-    headers:{Authorization:"Bearer "+token}
-  });
-
-  buscarProdutos("");
+ await fetch("/products/"+id,{
+  method:"DELETE",
+  headers:{Authorization:"Bearer "+token}
+ });
+ buscar("");
 }
 
-/* ========================
-   FORNECEDORES
-======================== */
+/* FORNECEDORES */
 function abrirModal(){
-  document.getElementById("modalFornecedor").style.display="flex";
-  carregarFornecedores();
+ modalFornecedor.style.display="flex";
+ carregarFornecedores();
 }
-function fecharModal(){
-  document.getElementById("modalFornecedor").style.display="none";
-}
+function fecharModal(){modalFornecedor.style.display="none";}
+
 async function carregarFornecedores(){
-  const res = await fetch(API+"/suppliers",{
-    headers:{Authorization:"Bearer "+token}
-  });
-  const dados = await res.json();
+ const res=await fetch("/suppliers",{headers:{Authorization:"Bearer "+token}});
+ const data=await res.json();
 
-  fornecedor.innerHTML="";
-  listaFornecedores.innerHTML="";
+ fornecedor.innerHTML="";
+ listaFornecedores.innerHTML="";
 
-  dados.forEach(f=>{
-    fornecedor.innerHTML+=`<option>${f.nome}</option>`;
-    listaFornecedores.innerHTML+=`<div>${f.nome}</div>`;
-  });
+ data.forEach(f=>{
+  fornecedor.innerHTML+=`<option>${f.nome}</option>`;
+  listaFornecedores.innerHTML+=`<div>${f.nome}</div>`;
+ });
 }
+
 async function criarFornecedor(){
-  await fetch(API+"/suppliers",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      Authorization:"Bearer "+token
-    },
-    body:JSON.stringify({nome:novoFornecedor.value})
-  });
+ await fetch("/suppliers",{
+  method:"POST",
+  headers:{
+   "Content-Type":"application/json",
+   Authorization:"Bearer "+token
+  },
+  body:JSON.stringify({nome:novoFornecedor.value})
+ });
 
-  novoFornecedor.value="";
-  carregarFornecedores();
+ novoFornecedor.value="";
+ carregarFornecedores();
 }
 
-/* ========================
-   EXCEL
-======================== */
-function exportarExcel(){
-  let tabela=document.querySelector("table").outerHTML;
-  let blob=new Blob([tabela],{type:"application/vnd.ms-excel"});
-  let a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download="relatorio_produtos.xls";
-  a.click();
-}
-
-buscarProdutos("");
+/* INICIALIZAÇÃO */
+buscar("");
 carregarFornecedores();
+gerarCodigoProduto();
 </script>
 
 </body>
