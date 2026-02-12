@@ -249,24 +249,19 @@ async function atualizarCampo(id, campo, valor){
   console.log("Atualizado com sucesso");
 }
 
-app.put("/products/:id", verificarToken, async (req,res)=>{
+app.put("/products/:id", authenticateToken, async (req,res)=>{
 
   if(req.user.role !== "admin"){
     return res.status(403).json({error:"Apenas admin pode editar"});
   }
 
   const { id } = req.params;
+
   const nome = req.body.nome || "";
   const fornecedor = req.body.fornecedor || "";
-  const sku = req.body.sku || "";
-  const cor = req.body.cor || "";
-  const tamanho = req.body.tamanho || "";
   const estoque = parseInt(req.body.estoque) || 0;
   const preco_custo = parseFloat(req.body.preco_custo) || 0;
   const preco_venda = parseFloat(req.body.preco_venda) || 0;
-  const variacao = req.body.variacao || "0%";
-  const barcode = req.body.barcode || "";
-
 
   try{
 
@@ -274,18 +269,12 @@ app.put("/products/:id", verificarToken, async (req,res)=>{
       UPDATE products SET
       nome=$1,
       fornecedor=$2,
-      sku=$3,
-      cor=$4,
-      tamanho=$5,
-      estoque=$6,
-      preco_custo=$7,
-      preco_venda=$8,
-      variacao=$9,
-      barcode=$10
-      WHERE id=$11
+      estoque=$3,
+      preco_custo=$4,
+      preco_venda=$5
+      WHERE id=$6
     `,
-    [nome, fornecedor, sku, cor, tamanho, estoque,
-     preco_custo, preco_venda, variacao, barcode, id]);
+    [nome, fornecedor, estoque, preco_custo, preco_venda, id]);
 
     res.json({success:true});
 
