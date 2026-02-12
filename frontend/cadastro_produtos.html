@@ -2,30 +2,64 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>Cadastro Produtos</title>
-<link rel="stylesheet" href="style.css">
+<title>Cadastro de Produtos</title>
+<link rel="stylesheet" href="cadastro_produtos.css">
 </head>
-<body class="login-bg">
+<body>
 
-<div class="login-card" style="width:1100px">
+<main class="bg">
+<section class="card">
 
-<h2>📦 Cadastro de Produtos</h2>
+<h2 class="title">📦 Cadastro de Produtos</h2>
 
-<input id="busca" placeholder="🔍 Buscar produto..." onkeyup="buscarProdutos(this.value)">
+<!-- BOTÕES SUPERIORES -->
+<div class="actions">
+  <button class="btn green" onclick="abrirModal()">Gerenciar Fornecedores</button>
+  <button class="btn red" onclick="exportarExcel()">Exportar Excel</button>
+</div>
 
-<br><br>
+<!-- FORMULÁRIO -->
+<div class="form-grid">
 
-<input id="codigo" placeholder="Código">
-<input id="nome" placeholder="Nome">
-<select id="fornecedor"></select>
-<input id="estoque" placeholder="Estoque">
-<input id="custo" placeholder="Preço Custo">
-<input id="venda" placeholder="Preço Venda">
+  <div>
+    <label>Código</label>
+    <input id="codigo">
+  </div>
 
-<button onclick="salvar()">Adicionar</button>
-<button onclick="exportarExcel()">📊 Exportar Excel</button>
+  <div>
+    <label>Nome</label>
+    <input id="nome">
+  </div>
 
-<table border="1" width="100%" style="margin-top:20px">
+  <div>
+    <label>Fornecedor</label>
+    <select id="fornecedor"></select>
+  </div>
+
+  <div>
+    <label>Estoque</label>
+    <input id="estoque" type="number">
+  </div>
+
+  <div>
+    <label>Preço Custo</label>
+    <input id="custo" type="number">
+  </div>
+
+  <div>
+    <label>Preço Venda</label>
+    <input id="venda" type="number">
+  </div>
+
+</div>
+
+<button class="btn-submit" onclick="salvar()">Adicionar Produto</button>
+
+<input class="search" placeholder="🔍 Buscar produto..."
+onkeyup="buscarProdutos(this.value)">
+
+<!-- TABELA -->
+<table class="tabela">
 <thead>
 <tr>
 <th>ID</th>
@@ -37,9 +71,29 @@
 <th>Ação</th>
 </tr>
 </thead>
-<tbody id="lista"></tbody>
+<tbody id="listaProdutos"></tbody>
 </table>
 
+</section>
+</main>
+
+<!-- MODAL FORNECEDOR -->
+<div class="modal-bg" id="modalFornecedor">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Gerenciar Fornecedores</h3>
+      <button onclick="fecharModal()">×</button>
+    </div>
+
+    <div class="modal-body">
+      <input id="novoFornecedor" placeholder="Novo fornecedor">
+      <button onclick="criarFornecedor()">Adicionar</button>
+
+      <div id="listaFornecedores"></div>
+    </div>
+
+    <button class="btn-close" onclick="fecharModal()">Fechar</button>
+  </div>
 </div>
 
 <script>
@@ -48,15 +102,9 @@ const token = localStorage.getItem("token");
 
 if(!token) window.location="login.html";
 
-async function carregarFornecedores(){
-  const res = await fetch(API+"/suppliers",{headers:{Authorization:"Bearer "+token}});
-  const data = await res.json();
-  const select = document.getElementById("fornecedor");
-  select.innerHTML="";
-  data.forEach(f=>{
-    select.innerHTML+=`<option value="${f.nome}">${f.nome}</option>`;
-  });
-}
+/* =======================
+   PRODUTOS
+======================= */
 
 async function salvar(){
   await fetch(API+"/products",{
@@ -81,19 +129,20 @@ async function buscarProdutos(q){
   const res = await fetch(API+"/products?q="+q,{
     headers:{Authorization:"Bearer "+token}
   });
-  const data = await res.json();
-  lista.innerHTML="";
-  data.forEach(p=>{
-    lista.innerHTML+=`
+  const dados = await res.json();
+
+  listaProdutos.innerHTML="";
+
+  dados.forEach(p=>{
+    listaProdutos.innerHTML+=`
     <tr>
       <td>${p.id}</td>
       <td>${p.codigo}</td>
       <td>${p.nome}</td>
       <td>${p.fornecedor}</td>
       <td>${p.estoque}</td>
-      <td>${p.preco_venda}</td>
+      <td>R$ ${p.preco_venda}</td>
       <td>
-        <button onclick="editar(${p.id})">✏</button>
         <button onclick="excluir(${p.id})">🗑</button>
       </td>
     </tr>`;
@@ -101,24 +150,73 @@ async function buscarProdutos(q){
 }
 
 async function excluir(id){
+  if(!confirm("Excluir produto?")) return;
+
   await fetch(API+"/products/"+id,{
     method:"DELETE",
     headers:{Authorization:"Bearer "+token}
   });
+
   buscarProdutos("");
 }
+
+/* =======================
+   FORNECEDORES
+======================= */
+
+function abrirModal(){
+  document.getElementById("modalFornecedor").style.display="flex";
+  carregarFornecedores();
+}
+
+function fecharModal(){
+  document.getElementById("modalFornecedor").style.display="none";
+}
+
+async function carregarFornecedores(){
+  const res = await fetch(API+"/suppliers",{
+    headers:{Authorization:"Bearer "+token}
+  });
+  const dados = await res.json();
+
+  fornecedor.innerHTML="";
+  listaFornecedores.innerHTML="";
+
+  dados.forEach(f=>{
+    fornecedor.innerHTML+=`<option>${f.nome}</option>`;
+    listaFornecedores.innerHTML+=`<div>${f.nome}</div>`;
+  });
+}
+
+async function criarFornecedor(){
+  await fetch(API+"/suppliers",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer "+token
+    },
+    body:JSON.stringify({nome:novoFornecedor.value})
+  });
+
+  novoFornecedor.value="";
+  carregarFornecedores();
+}
+
+/* =======================
+   EXCEL
+======================= */
 
 function exportarExcel(){
   let tabela=document.querySelector("table").outerHTML;
   let blob=new Blob([tabela],{type:"application/vnd.ms-excel"});
   let a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
-  a.download="relatorio.xls";
+  a.download="relatorio_produtos.xls";
   a.click();
 }
 
-carregarFornecedores();
 buscarProdutos("");
+carregarFornecedores();
 </script>
 
 </body>
