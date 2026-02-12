@@ -4,30 +4,53 @@ const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const { Pool } = require("pg");
+const path = require("path");
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
-app.use(express.static("../frontend"));
 
+/* ================================
+   🔐 CONTENT SECURITY POLICY
+================================ */
+app.use((req, res, next) => {
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self'; " +
+    "style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; " +
+    "font-src 'self' https://fonts.gstatic.com; " +
+    "script-src 'self' 'unsafe-inline';"
+  );
+  next();
+});
+
+/* ================================
+   📦 SERVIR FRONTEND
+================================ */
+app.use(express.static(path.join(__dirname, "../frontend")));
+
+/* ================================
+   🗄 CONEXÃO POSTGRES
+================================ */
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
-const SECRET = "supersecretkey";
+const SECRET = process.env.JWT_SECRET || "supersecretkey";
 
 /* ================================
-   🔐 AUTH
+   🔐 MIDDLEWARE TOKEN
 ================================ */
-
 function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
-  if (!token) return res.sendStatus(401);
+
+  if (!token) return res.status(401).json({ error: "Token não enviado" });
 
   jwt.verify(token, SECRET, (err, user) => {
-    if (err) return res.sendStatus(403);
+    if (err) return res.status(403).json({ error: "Token inválido ou expirado" });
     req.user = user;
     next();
   });
@@ -47,15 +70,19 @@ CREATE TABLE IF NOT EXISTS users (
 `);
 
 app.post("/register", authenticateToken, async (req, res) => {
-  const { username, password, role } = req.body;
-  const hash = await bcrypt.hash(password, 10);
+  try {
+    const { username, password, role } = req.body;
+    const hash = await bcrypt.hash(password, 10);
 
-  await pool.query(
-    "INSERT INTO users (username, password, role) VALUES ($1,$2,$3)",
-    [username, hash, role]
-  );
+    await pool.query(
+      "INSERT INTO users (username, password, role) VALUES ($1,$2,$3)",
+      [username, hash, role || "user"]
+    );
 
-  res.json({ message: "Usuário criado" });
+    res.json({ message: "Usuário criado" });
+  } catch (err) {
+    res.status(400).json({ error: "Usuário já existe" });
+  }
 });
 
 app.post("/login", async (req, res) => {
@@ -124,10 +151,12 @@ CREATE TABLE IF NOT EXISTS products (
 
 app.get("/products", authenticateToken, async (req, res) => {
   const busca = req.query.q || "";
+
   const result = await pool.query(
     "SELECT * FROM products WHERE nome ILIKE $1 ORDER BY id DESC",
     [`%${busca}%`]
   );
+
   res.json(result.rows);
 });
 
@@ -164,11 +193,19 @@ app.delete("/products/:id", authenticateToken, async (req, res) => {
 });
 
 /* ================================
-   🚀 START
+   🌐 ROTA PRINCIPAL
 ================================ */
 
 app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/../frontend/login.html");
+  res.sendFile(path.join(__dirname, "../frontend/login.html"));
 });
 
-app.listen(3000, () => console.log("Servidor rodando"));
+/* ================================
+   🚀 START SERVER
+================================ */
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log("Servidor rodando na porta " + PORT);
+});
