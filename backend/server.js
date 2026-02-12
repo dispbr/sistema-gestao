@@ -1,27 +1,42 @@
 require("dotenv").config();
 const express = require("express");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
 const { Pool } = require("pg");
-const path = require("path");
 
 const app = express();
-app.use(express.json());
 app.use(cors());
+app.use(express.json());
+app.use(express.static("../frontend"));
 
-// 🔹 Servir frontend automaticamente
-app.use(express.static(path.join(__dirname, "../frontend")));
-
-const SECRET = process.env.SECRET || "super_chave_secreta";
-
-// 🔹 Conexão PostgreSQL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
-// 🔹 Criar tabela automaticamente
+const SECRET = "supersecretkey";
+
+/* ================================
+   🔐 AUTH
+================================ */
+
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+  if (!token) return res.sendStatus(401);
+
+  jwt.verify(token, SECRET, (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
+}
+
+/* ================================
+   👤 USERS
+================================ */
+
 pool.query(`
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
@@ -29,123 +44,131 @@ CREATE TABLE IF NOT EXISTS users (
   password TEXT NOT NULL,
   role VARCHAR(20) DEFAULT 'user'
 );
-`)
-.then(() => console.log("Tabela users pronta"))
-.catch(err => console.error("Erro ao criar tabela:", err));
+`);
 
+app.post("/register", authenticateToken, async (req, res) => {
+  const { username, password, role } = req.body;
+  const hash = await bcrypt.hash(password, 10);
 
-// 🔐 Middleware de autenticação
-function authenticateToken(req, res, next) {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
+  await pool.query(
+    "INSERT INTO users (username, password, role) VALUES ($1,$2,$3)",
+    [username, hash, role]
+  );
 
-  if (!token) return res.status(401).json({ error: "Token não fornecido" });
+  res.json({ message: "Usuário criado" });
+});
 
-  jwt.verify(token, SECRET, (err, user) => {
-    if (err) return res.status(403).json({ error: "Token inválido" });
-    req.user = user;
-    next();
-  });
-}
-
-
-// 🔐 LOGIN
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
 
-  try {
-    const result = await pool.query(
-      "SELECT * FROM users WHERE username=$1",
-      [username]
-    );
-
-    if (result.rows.length === 0)
-      return res.status(400).json({ error: "Usuário inválido" });
-
-    const user = result.rows[0];
-
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid)
-      return res.status(400).json({ error: "Senha inválida" });
-
-    const token = jwt.sign(
-      { id: user.id, role: user.role },
-      SECRET,
-      { expiresIn: "30m" }
-    );
-
-    res.json({ token, role: user.role });
-
-  } catch (err) {
-    res.status(500).json({ error: "Erro no servidor" });
-  }
-});
-
-
-// 👥 CRIAR USUÁRIO (APENAS ADMIN)
-app.post("/register", authenticateToken, async (req, res) => {
-
-  if (req.user.role !== "admin") {
-    return res.status(403).json({ error: "Apenas admin pode criar usuários" });
-  }
-
-  const { username, password, role } = req.body;
-  const hashed = await bcrypt.hash(password, 10);
-
-  try {
-    await pool.query(
-      "INSERT INTO users (username, password, role) VALUES ($1,$2,$3)",
-      [username, hashed, role || "user"]
-    );
-
-    res.json({ message: "Usuário criado com sucesso" });
-
-  } catch (err) {
-    res.status(400).json({ error: "Usuário já existe" });
-  }
-});
-
-
-// 📋 LISTAR USUÁRIOS (APENAS ADMIN)
-app.get("/users", authenticateToken, async (req, res) => {
-
-  if (req.user.role !== "admin") {
-    return res.status(403).json({ error: "Apenas admin pode listar usuários" });
-  }
-
   const result = await pool.query(
-    "SELECT id, username, role FROM users"
+    "SELECT * FROM users WHERE username=$1",
+    [username]
   );
 
+  if (result.rows.length === 0)
+    return res.status(400).json({ error: "Usuário inválido" });
+
+  const user = result.rows[0];
+  const valid = await bcrypt.compare(password, user.password);
+
+  if (!valid)
+    return res.status(400).json({ error: "Senha inválida" });
+
+  const token = jwt.sign(
+    { id: user.id, role: user.role },
+    SECRET,
+    { expiresIn: "30m" }
+  );
+
+  res.json({ token, role: user.role });
+});
+
+/* ================================
+   🏢 FORNECEDORES
+================================ */
+
+pool.query(`
+CREATE TABLE IF NOT EXISTS suppliers (
+  id SERIAL PRIMARY KEY,
+  nome VARCHAR(200) UNIQUE NOT NULL
+);
+`);
+
+app.get("/suppliers", authenticateToken, async (req, res) => {
+  const result = await pool.query("SELECT * FROM suppliers ORDER BY nome");
   res.json(result.rows);
 });
 
+app.post("/suppliers", authenticateToken, async (req, res) => {
+  const { nome } = req.body;
+  await pool.query("INSERT INTO suppliers (nome) VALUES ($1)", [nome]);
+  res.json({ message: "Fornecedor criado" });
+});
 
-// 🔄 RESETAR SENHA (APENAS ADMIN)
-app.put("/reset-password/:id", authenticateToken, async (req, res) => {
+/* ================================
+   📦 PRODUTOS
+================================ */
 
-  if (req.user.role !== "admin") {
-    return res.status(403).json({ error: "Apenas admin pode resetar senha" });
-  }
+pool.query(`
+CREATE TABLE IF NOT EXISTS products (
+  id SERIAL PRIMARY KEY,
+  codigo VARCHAR(100),
+  nome VARCHAR(200),
+  fornecedor VARCHAR(200),
+  estoque INTEGER,
+  preco_custo NUMERIC,
+  preco_venda NUMERIC
+);
+`);
 
-  const { password } = req.body;
-  const hashed = await bcrypt.hash(password, 10);
+app.get("/products", authenticateToken, async (req, res) => {
+  const busca = req.query.q || "";
+  const result = await pool.query(
+    "SELECT * FROM products WHERE nome ILIKE $1 ORDER BY id DESC",
+    [`%${busca}%`]
+  );
+  res.json(result.rows);
+});
+
+app.post("/products", authenticateToken, async (req, res) => {
+  const { codigo, nome, fornecedor, estoque, preco_custo, preco_venda } = req.body;
 
   await pool.query(
-    "UPDATE users SET password=$1 WHERE id=$2",
-    [hashed, req.params.id]
+    `INSERT INTO products 
+     (codigo,nome,fornecedor,estoque,preco_custo,preco_venda)
+     VALUES ($1,$2,$3,$4,$5,$6)`,
+    [codigo,nome,fornecedor,estoque,preco_custo,preco_venda]
   );
 
-  res.json({ message: "Senha atualizada com sucesso" });
+  res.json({ message: "Produto cadastrado" });
 });
 
+app.put("/products/:id", authenticateToken, async (req, res) => {
+  const { codigo, nome, fornecedor, estoque, preco_custo, preco_venda } = req.body;
 
-// 🔹 Rota padrão sempre abrir login
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/login.html"));
+  await pool.query(
+    `UPDATE products SET
+     codigo=$1,nome=$2,fornecedor=$3,
+     estoque=$4,preco_custo=$5,preco_venda=$6
+     WHERE id=$7`,
+    [codigo,nome,fornecedor,estoque,preco_custo,preco_venda,req.params.id]
+  );
+
+  res.json({ message: "Produto atualizado" });
 });
 
-
-app.listen(3000, () => {
-  console.log("Servidor rodando na porta 3000");
+app.delete("/products/:id", authenticateToken, async (req, res) => {
+  await pool.query("DELETE FROM products WHERE id=$1", [req.params.id]);
+  res.json({ message: "Produto excluído" });
 });
+
+/* ================================
+   🚀 START
+================================ */
+
+app.get("/", (req, res) => {
+  res.sendFile(__dirname + "/../frontend/login.html");
+});
+
+app.listen(3000, () => console.log("Servidor rodando"));

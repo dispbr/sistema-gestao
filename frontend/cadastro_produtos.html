@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Cadastro Produtos</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="login-bg">
+
+<div class="login-card" style="width:1100px">
+
+<h2>📦 Cadastro de Produtos</h2>
+
+<input id="busca" placeholder="🔍 Buscar produto..." onkeyup="buscarProdutos(this.value)">
+
+<br><br>
+
+<input id="codigo" placeholder="Código">
+<input id="nome" placeholder="Nome">
+<select id="fornecedor"></select>
+<input id="estoque" placeholder="Estoque">
+<input id="custo" placeholder="Preço Custo">
+<input id="venda" placeholder="Preço Venda">
+
+<button onclick="salvar()">Adicionar</button>
+<button onclick="exportarExcel()">📊 Exportar Excel</button>
+
+<table border="1" width="100%" style="margin-top:20px">
+<thead>
+<tr>
+<th>ID</th>
+<th>Código</th>
+<th>Nome</th>
+<th>Fornecedor</th>
+<th>Estoque</th>
+<th>Venda</th>
+<th>Ação</th>
+</tr>
+</thead>
+<tbody id="lista"></tbody>
+</table>
+
+</div>
+
+<script>
+const API = "https://sistema-gestao-yz16.onrender.com";
+const token = localStorage.getItem("token");
+
+if(!token) window.location="login.html";
+
+async function carregarFornecedores(){
+  const res = await fetch(API+"/suppliers",{headers:{Authorization:"Bearer "+token}});
+  const data = await res.json();
+  const select = document.getElementById("fornecedor");
+  select.innerHTML="";
+  data.forEach(f=>{
+    select.innerHTML+=`<option value="${f.nome}">${f.nome}</option>`;
+  });
+}
+
+async function salvar(){
+  await fetch(API+"/products",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer "+token
+    },
+    body:JSON.stringify({
+      codigo:codigo.value,
+      nome:nome.value,
+      fornecedor:fornecedor.value,
+      estoque:estoque.value,
+      preco_custo:custo.value,
+      preco_venda:venda.value
+    })
+  });
+  buscarProdutos("");
+}
+
+async function buscarProdutos(q){
+  const res = await fetch(API+"/products?q="+q,{
+    headers:{Authorization:"Bearer "+token}
+  });
+  const data = await res.json();
+  lista.innerHTML="";
+  data.forEach(p=>{
+    lista.innerHTML+=`
+    <tr>
+      <td>${p.id}</td>
+      <td>${p.codigo}</td>
+      <td>${p.nome}</td>
+      <td>${p.fornecedor}</td>
+      <td>${p.estoque}</td>
+      <td>${p.preco_venda}</td>
+      <td>
+        <button onclick="editar(${p.id})">✏</button>
+        <button onclick="excluir(${p.id})">🗑</button>
+      </td>
+    </tr>`;
+  });
+}
+
+async function excluir(id){
+  await fetch(API+"/products/"+id,{
+    method:"DELETE",
+    headers:{Authorization:"Bearer "+token}
+  });
+  buscarProdutos("");
+}
+
+function exportarExcel(){
+  let tabela=document.querySelector("table").outerHTML;
+  let blob=new Blob([tabela],{type:"application/vnd.ms-excel"});
+  let a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="relatorio.xls";
+  a.click();
+}
+
+carregarFornecedores();
+buscarProdutos("");
+</script>
+
+</body>
+</html>
