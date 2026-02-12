@@ -196,14 +196,9 @@ async function salvar(){
     codigo: codigo.value,
     nome: nome.value,
     fornecedor: fornecedor.value,
-    sku: sku.value,
-    cor: cor.value,
-    tamanho: tamanho.value,
     estoque: estoque.value,
     preco_custo: limparMoeda(custo.value),
-    preco_venda: limparMoeda(venda.value),
-    variacao: variacao.value,
-    barcode: barcode.value
+    preco_venda: limparMoeda(venda.value)
   };
 
   const res = await fetch("/products",{
@@ -217,8 +212,7 @@ async function salvar(){
 
   const produto = await res.json();
 
-  adicionarLinha(produto);
-
+  adicionarLinha(produto); // agora tem ID real
 }
 
 /* ================= ADICIONAR LINHA ================= */
@@ -231,21 +225,17 @@ function adicionarLinha(p){
     <td>${p.codigo}</td>
     <td contenteditable="true">${p.nome}</td>
     <td contenteditable="true">${p.fornecedor}</td>
-    <td contenteditable="true">${p.sku}</td>
-    <td contenteditable="true">${p.cor}</td>
-    <td contenteditable="true">${p.tamanho}</td>
     <td contenteditable="true">${p.estoque}</td>
     <td contenteditable="true">${p.preco_custo}</td>
     <td contenteditable="true">${p.preco_venda}</td>
-    <td>${p.variacao}</td>
-    <td contenteditable="true">${p.barcode}</td>
 
     <td>
-      <button class="btn red small" onclick="excluir(this)">Excluir</button>
+      <button onclick="excluir(this)">🗑</button>
     </td>
 
   </tr>`;
 }
+
 
 /* ================= INLINE UPDATE ================= */
 
