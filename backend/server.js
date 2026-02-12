@@ -126,24 +126,47 @@ app.get("/products", authenticateToken, async (req, res) => {
 
 app.post("/products", authenticateToken, async (req, res) => {
 
-  const {
-    codigo, nome, fornecedor,
-    sku, cor, tamanho,
-    estoque, preco_custo,
-    preco_venda, variacao, barcode
-  } = req.body;
+  try {
 
-  const result = await pool.query(`
-    INSERT INTO products
-    (codigo,nome,fornecedor,sku,cor,tamanho,
-     estoque,preco_custo,preco_venda,variacao,barcode)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-    RETURNING *
-  `,
-  [codigo,nome,fornecedor,sku,cor,tamanho,
-   estoque,preco_custo,preco_venda,variacao,barcode]);
+    const {
+      codigo, nome, fornecedor,
+      sku, cor, tamanho,
+      estoque, preco_custo,
+      preco_venda, variacao, barcode
+    } = req.body;
 
-  res.json(result.rows[0]);
+    const estoqueNumero = parseInt(estoque) || 0;
+    const custoNumero = parseFloat(preco_custo) || 0;
+    const vendaNumero = parseFloat(preco_venda) || 0;
+
+    const result = await pool.query(`
+      INSERT INTO products
+      (codigo,nome,fornecedor,sku,cor,tamanho,
+       estoque,preco_custo,preco_venda,variacao,barcode)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      RETURNING *
+    `,
+    [
+      codigo || "",
+      nome || "",
+      fornecedor || "",
+      sku || "",
+      cor || "",
+      tamanho || "",
+      estoqueNumero,
+      custoNumero,
+      vendaNumero,
+      variacao || "",
+      barcode || ""
+    ]);
+
+    res.json(result.rows[0]);
+
+  } catch (err) {
+    console.error("ERRO AO SALVAR PRODUTO:", err);
+    res.status(500).json({ error: "Erro ao salvar produto" });
+  }
+
 });
 
 app.put("/products/:id", authenticateToken, async (req,res)=>{
