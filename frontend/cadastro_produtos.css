@@ -7,14 +7,14 @@ body {
   margin: 0;
 }
 
-/* Fundo */
+/* ================= FUNDO ================= */
 .bg {
   min-height: 100vh;
   padding: 32px;
   background: radial-gradient(circle at top, #1e3a5f, #08162a 70%);
 }
 
-/* Card */
+/* ================= CARD PRINCIPAL ================= */
 .card {
   background: #fff;
   border-radius: 22px;
@@ -24,14 +24,14 @@ body {
   box-shadow: 0 30px 60px rgba(0,0,0,.35);
 }
 
-/* Título */
+/* ================= TITULO ================= */
 .title {
   margin: 0 0 20px;
   font-size: 22px;
   color: #0b1f3a;
 }
 
-/* Botões topo */
+/* ================= BOTÕES TOPO ================= */
 .actions {
   display: flex;
   gap: 14px;
@@ -45,6 +45,12 @@ body {
   font-weight: 600;
   color: #fff;
   cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
 }
 
 .green { background: #12b76a; }
@@ -56,7 +62,7 @@ body {
   height: 42px;
 }
 
-/* Grid formulário */
+/* ================= GRID FORM ================= */
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -77,20 +83,26 @@ input, select {
   border-radius: 8px;
   border: 1px solid #d0d5dd;
   font-size: 14px;
+  transition: 0.2s;
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: #0b1f3a;
 }
 
 input:disabled {
   background: #f2f4f7;
 }
 
-/* Código de barras */
+/* ================= CÓDIGO DE BARRAS ================= */
 .barcode {
   display: flex;
   gap: 10px;
   align-items: flex-end;
 }
 
-/* Botão principal */
+/* ================= BOTÃO PRINCIPAL ================= */
 .btn-submit {
   margin-top: 28px;
   width: 100%;
@@ -101,9 +113,14 @@ input:disabled {
   color: white;
   font-weight: 600;
   cursor: pointer;
+  transition: 0.2s;
 }
 
-/* Busca */
+.btn-submit:hover {
+  transform: translateY(-2px);
+}
+
+/* ================= BUSCA ================= */
 .search {
   margin-top: 16px;
   width: 100%;
@@ -112,32 +129,61 @@ input:disabled {
   border-radius: 8px;
   border: 1px solid #d0d5dd;
 }
+
+/* ================= TABELA ================= */
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  font-size: 14px;
+}
+
+.tabela th {
+  background: #0b1f3a;
+  color: white;
+  padding: 12px;
+  text-align: center;
+}
+
+.tabela td {
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+.tabela tr:hover {
+  background: #f9fafb;
+}
+
+/* ================= MODAL FUNDO ================= */
 .modal-bg {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.55);
+  background: rgba(0,0,0,.6);
   display: none;
   align-items: center;
   justify-content: center;
   z-index: 1000;
 }
 
+/* ================= MODAL CARD (MESMO PADRÃO DO SISTEMA) ================= */
 .modal {
   background: #fff;
-  width: 420px;
-  max-height: 80vh;
-  border-radius: 18px;
-  padding: 20px;
+  width: 800px;
+  max-height: 85vh;
+  border-radius: 22px;
+  padding: 30px;
+  box-shadow: 0 30px 60px rgba(0,0,0,.35);
   display: flex;
   flex-direction: column;
 }
 
+/* ================= MODAL HEADER ================= */
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #e5e7eb;
-  padding-bottom: 10px;
+  margin-bottom: 20px;
 }
 
 .modal-header h3 {
@@ -152,35 +198,12 @@ input:disabled {
   cursor: pointer;
 }
 
+/* ================= MODAL BODY ================= */
 .modal-body {
-  padding: 16px 0;
   overflow-y: auto;
 }
 
-.add-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 18px;
-}
-
-.add-row input {
-  flex: 1;
-  height: 40px;
-  border-radius: 8px;
-  border: 1px solid #d0d5dd;
-  padding: 0 12px;
-}
-
-.confirm {
-  width: 40px;
-  border-radius: 8px;
-  border: none;
-  background: #0b1f3a;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-}
-
+/* ================= LISTA FORNECEDORES ================= */
 .lista .item {
   display: flex;
   justify-content: space-between;
@@ -189,6 +212,11 @@ input:disabled {
   padding: 10px 12px;
   border-radius: 8px;
   margin-bottom: 10px;
+  transition: 0.2s;
+}
+
+.lista .item:hover {
+  background: #f3f4f6;
 }
 
 .delete {
@@ -199,8 +227,9 @@ input:disabled {
   cursor: pointer;
 }
 
+/* ================= BOTÃO FECHAR MODAL ================= */
 .btn-close {
-  margin-top: 10px;
+  margin-top: 15px;
   height: 44px;
   border-radius: 10px;
   border: none;

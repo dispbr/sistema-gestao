@@ -6,8 +6,6 @@
 <link rel="stylesheet" href="cadastro_produtos.css">
 
 <style>
-
-/* ===== TOPO VOLTAR ===== */
 .topbar{
  width:100%;
  background:#08162a;
@@ -31,9 +29,16 @@
  text-align:center;
  padding:10px;
 }
-.modal-body{
- max-height:300px;
- overflow:auto;
+
+.modal{
+ background:white;
+ padding:20px;
+ border-radius:10px;
+ width:500px;
+}
+
+input,select{
+ text-transform:uppercase;
 }
 </style>
 </head>
@@ -51,63 +56,23 @@
 
 <div class="actions">
 <button class="btn green" onclick="abrirModal()">Gerenciar Fornecedores</button>
-<button class="btn blue" onclick="alterar()">Alterar</button>
-<button class="btn purple" onclick="salvarEdicao()">Salvar</button>
 </div>
 
 <div class="form-grid">
 
 <input id="id" hidden>
 
-<div>
-<label>Código</label>
-<input id="codigo" readonly>
-</div>
-
-<div>
-<label>Nome</label>
-<input id="nome">
-</div>
-
-<div>
-<label>Fornecedor</label>
-<select id="fornecedor"></select>
-</div>
-
-<div>
-<label>SKU</label>
-<input id="sku">
-</div>
-
-<div>
-<label>Cor</label>
-<input id="cor">
-</div>
-
-<div>
-<label>Tamanho</label>
-<input id="tamanho">
-</div>
-
-<div>
-<label>SKU Completo</label>
-<input id="skuCompleto" disabled>
-</div>
-
-<div>
-<label>Estoque</label>
-<input id="estoque" type="number">
-</div>
-
-<div>
-<label>Preço Custo</label>
-<input id="custo" type="number">
-</div>
-
-<div>
-<label>Preço Venda</label>
-<input id="venda" type="number">
-</div>
+<div><label>Código</label><input id="codigo" readonly></div>
+<div><label>Nome</label><input id="nome"></div>
+<div><label>Fornecedor</label><select id="fornecedor"></select></div>
+<div><label>SKU</label><input id="sku"></div>
+<div><label>Cor</label><input id="cor"></div>
+<div><label>Tamanho</label><input id="tamanho"></div>
+<div><label>SKU Completo</label><input id="skuCompleto" disabled></div>
+<div><label>Estoque</label><input id="estoque" type="number"></div>
+<div><label>Custo</label><input id="custo" type="number"></div>
+<div><label>Venda</label><input id="venda" type="number"></div>
+<div><label>Variação %</label><input id="variacao" disabled></div>
 
 <div>
 <label>Código Barras</label>
@@ -126,7 +91,6 @@
 <table class="tabela">
 <thead>
 <tr>
-<th style="display:none;">ID</th>
 <th>Código</th>
 <th>Nome</th>
 <th>Fornecedor</th>
@@ -134,7 +98,9 @@
 <th>Cor</th>
 <th>Tamanho</th>
 <th>Estoque</th>
+<th>Custo</th>
 <th>Venda</th>
+<th>Variação</th>
 <th>Barras</th>
 <th>Ação</th>
 </tr>
@@ -145,51 +111,77 @@
 </section>
 </main>
 
-<!-- MODAL -->
+<!-- MODAL FORNECEDORES -->
 <div class="modal-bg" id="modalFornecedor">
-<div class="modal">
-<h3>Fornecedores</h3>
+  <div class="modal-card">
 
-<input id="novoFornecedor" placeholder="Novo fornecedor">
-<button onclick="criarFornecedor()">Adicionar</button>
+    <h2 class="title">🏢 Gerenciar Fornecedores</h2>
 
-<div id="listaFornecedores"></div>
+    <div class="form-grid" style="grid-template-columns: 1fr 150px;">
+      <div>
+        <label>Nome do Fornecedor</label>
+        <input id="fornecedorNome" placeholder="Digite o nome">
+      </div>
+      <div style="display:flex; align-items:end;">
+        <button class="btn green" onclick="salvarFornecedor()">Salvar</button>
+      </div>
+    </div>
 
-<button onclick="fecharModal()">Fechar</button>
+    <div class="actions" style="margin-top:15px;">
+      <button class="btn blue" onclick="editarFornecedor()">Alterar</button>
+      <button class="btn red" onclick="excluirFornecedor()">Excluir</button>
+      <button class="btn purple" onclick="fecharModal()">Fechar</button>
+    </div>
+
+    <table class="tabela" style="margin-top:20px;">
+      <thead>
+        <tr>
+          <th>Fornecedor</th>
+        </tr>
+      </thead>
+      <tbody id="listaFornecedores"></tbody>
+    </table>
+
+  </div>
 </div>
-</div>
+
 
 <script>
 const token=localStorage.getItem("token");
 
-/* ===== GERAR CODIGO SEQUENCIAL ===== */
-async function gerarCodigoProduto(){
- const res=await fetch("/products?q=",{
-  headers:{Authorization:"Bearer "+token}
- });
- const data=await res.json();
+/* MAIUSCULO AUTOMÁTICO */
+document.addEventListener("input",e=>{
+ if(e.target.tagName==="INPUT"||e.target.tagName==="SELECT"){
+  e.target.value=e.target.value.toUpperCase();
+ }
+});
 
- let maior=0;
- data.forEach(p=>{
-  const num=parseInt(p.codigo);
-  if(num>maior) maior=num;
- });
-
- const novo=(maior+1).toString().padStart(4,"0");
- codigo.value=novo;
-}
+/* VARIAÇÃO AUTOMÁTICA */
+custo.oninput=venda.oninput=()=>{
+ if(!custo.value||!venda.value) return;
+ variacao.value=((venda.value-custo.value)/custo.value*100).toFixed(1)+"%";
+};
 
 /* SKU AUTOMÁTICO */
 sku.oninput=()=> skuCompleto.value=sku.value+"-"+cor.value+"-"+tamanho.value;
 cor.oninput=sku.oninput;
 tamanho.oninput=sku.oninput;
 
-/* GERAR BARRAS */
+/* GERAR CODIGO */
 function gerarCodigo(){
  barcode.value=Math.floor(Math.random()*999999999999);
 }
 
-/* SALVAR */
+/* CODIGO SEQUENCIAL */
+async function gerarCodigoProduto(){
+ const res=await fetch("/products",{headers:{Authorization:"Bearer "+token}});
+ const data=await res.json();
+ let max=0;
+ data.forEach(p=>{if(parseInt(p.codigo)>max) max=parseInt(p.codigo);});
+ codigo.value=(max+1).toString().padStart(4,"0");
+}
+
+/* SALVAR PRODUTO */
 async function salvar(){
  await fetch("/products",{
   method:"POST",
@@ -206,87 +198,40 @@ async function salvar(){
    preco_venda:venda.value
   })
  });
-
- alert("Produto salvo com sucesso!");
+ alert("Produto salvo!");
  gerarCodigoProduto();
  buscar("");
 }
 
 /* BUSCAR */
-async function buscar(q){
- const res=await fetch("/products?q="+q,{
-  headers:{Authorization:"Bearer "+token}
- });
+async function buscar(q=""){
+ const res=await fetch("/products?q="+q,{headers:{Authorization:"Bearer "+token}});
  const data=await res.json();
 
  lista.innerHTML="";
-
  data.forEach(p=>{
-  lista.innerHTML+=`
-  <tr onclick="selecionar(${p.id},'${p.codigo}','${p.nome}','${p.fornecedor}',${p.estoque},${p.preco_custo},${p.preco_venda})">
-  <td style="display:none;">${p.id}</td>
-  <td>${p.codigo}</td>
-  <td>${p.nome}</td>
-  <td>${p.fornecedor}</td>
-  <td>${p.sku||""}</td>
-  <td>${p.cor||""}</td>
-  <td>${p.tamanho||""}</td>
-  <td>${p.estoque}</td>
-  <td>${p.preco_venda}</td>
-  <td>${p.barcode||""}</td>
-  <td><button onclick="excluir(${p.id})">🗑</button></td>
-  </tr>`;
+ const perc=((p.preco_venda-p.preco_custo)/p.preco_custo*100).toFixed(1)+"%";
+
+ lista.innerHTML+=`
+ <tr>
+ <td>${p.codigo}</td>
+ <td>${p.nome}</td>
+ <td>${p.fornecedor}</td>
+ <td>${p.sku||""}</td>
+ <td>${p.cor||""}</td>
+ <td>${p.tamanho||""}</td>
+ <td>${p.estoque}</td>
+ <td>${p.preco_custo}</td>
+ <td>${p.preco_venda}</td>
+ <td>${perc}</td>
+ <td>${p.barcode||""}</td>
+ <td><button onclick="excluir(${p.id})">🗑</button></td>
+ </tr>`;
  });
-}
-
-/* SELECIONAR */
-function selecionar(idp,c,n,f,e,cus,ven){
- id.value=idp;
- codigo.value=c;
- nome.value=n;
- fornecedor.value=f;
- estoque.value=e;
- custo.value=cus;
- venda.value=ven;
-}
-
-/* ALTERAR */
-async function salvarEdicao(){
- await fetch("/products/"+id.value,{
-  method:"PUT",
-  headers:{
-   "Content-Type":"application/json",
-   Authorization:"Bearer "+token
-  },
-  body:JSON.stringify({
-   codigo:codigo.value,
-   nome:nome.value,
-   fornecedor:fornecedor.value,
-   estoque:estoque.value,
-   preco_custo:custo.value,
-   preco_venda:venda.value
-  })
- });
-
- alert("Produto alterado com sucesso!");
- buscar("");
-}
-
-/* EXCLUIR */
-async function excluir(id){
- await fetch("/products/"+id,{
-  method:"DELETE",
-  headers:{Authorization:"Bearer "+token}
- });
- buscar("");
 }
 
 /* FORNECEDORES */
-function abrirModal(){
- modalFornecedor.style.display="flex";
- carregarFornecedores();
-}
-function fecharModal(){modalFornecedor.style.display="none";}
+let fornecedorSelecionado=null;
 
 async function carregarFornecedores(){
  const res=await fetch("/suppliers",{headers:{Authorization:"Bearer "+token}});
@@ -296,29 +241,46 @@ async function carregarFornecedores(){
  listaFornecedores.innerHTML="";
 
  data.forEach(f=>{
-  fornecedor.innerHTML+=`<option>${f.nome}</option>`;
-  listaFornecedores.innerHTML+=`<div>${f.nome}</div>`;
+ fornecedor.innerHTML+=`<option>${f.nome}</option>`;
+ listaFornecedores.innerHTML+=`
+ <tr onclick="fornecedorSelecionado=${f.id};fornecedorNome.value='${f.nome}'">
+ <td>${f.nome}</td></tr>`;
  });
 }
 
-async function criarFornecedor(){
+async function salvarFornecedor(){
  await fetch("/suppliers",{
   method:"POST",
-  headers:{
-   "Content-Type":"application/json",
-   Authorization:"Bearer "+token
-  },
-  body:JSON.stringify({nome:novoFornecedor.value})
+  headers:{ "Content-Type":"application/json", Authorization:"Bearer "+token},
+  body:JSON.stringify({nome:fornecedorNome.value})
  });
-
- novoFornecedor.value="";
  carregarFornecedores();
 }
 
-/* INICIALIZAÇÃO */
-buscar("");
-carregarFornecedores();
+async function editarFornecedor(){
+ await fetch("/suppliers/"+fornecedorSelecionado,{
+  method:"PUT",
+  headers:{ "Content-Type":"application/json", Authorization:"Bearer "+token},
+  body:JSON.stringify({nome:fornecedorNome.value})
+ });
+ carregarFornecedores();
+}
+
+async function excluirFornecedor(){
+ await fetch("/suppliers/"+fornecedorSelecionado,{
+  method:"DELETE",
+  headers:{Authorization:"Bearer "+token}
+ });
+ carregarFornecedores();
+}
+
+function abrirModal(){ modalFornecedor.style.display="flex"; carregarFornecedores(); }
+function fecharModal(){ modalFornecedor.style.display="none"; }
+
+/* INIT */
 gerarCodigoProduto();
+buscar();
+carregarFornecedores();
 </script>
 
 </body>
