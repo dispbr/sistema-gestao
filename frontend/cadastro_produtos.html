@@ -97,21 +97,22 @@
 <table class="tabela">
 <thead>
 <tr>
-<th>Código</th>
-<th>Nome</th>
-<th>Fornecedor</th>
-<th>SKU</th>
-<th>Cor</th>
-<th>Tamanho</th>
+<th onclick="ordenarTabela(0)">Código ⬍</th>
+<th onclick="ordenarTabela(1)">Nome ⬍</th>
+<th onclick="ordenarTabela(2)">Fornecedor ⬍</th>
+<th onclick="ordenarTabela(3)">SKU ⬍</th>
+<th onclick="ordenarTabela(4)">Cor ⬍</th>
+<th onclick="ordenarTabela(5)">Tamanho ⬍</th>
 <th>SKU Completo</th>
-<th>Estoque</th>
-<th>Custo</th>
-<th>Venda</th>
+<th onclick="ordenarTabela(7)">Estoque ⬍</th>
+<th onclick="ordenarTabela(8)">Custo ⬍</th>
+<th onclick="ordenarTabela(9)">Venda ⬍</th>
 <th>Variação</th>
 <th>NCM</th>
 <th>Ação</th>
 </tr>
 </thead>
+
 <tbody id="lista"></tbody>
 </table>
 
@@ -534,6 +535,134 @@ function formatarMoedaInput(input){
   input.value = "R$ " + valor;
 }
 
+/* ================= BUSCA PRO (ERP LEVEL) ================= */
+
+function normalizarTexto(txt){
+  return txt
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, ""); // remove acentos
+}
+
+function removerHighlight(linha){
+  linha.querySelectorAll("mark").forEach(m=>{
+    m.outerHTML = m.innerText;
+  });
+}
+
+function destacarTexto(linha, termo){
+
+  if(!termo) return;
+
+  linha.querySelectorAll("td").forEach(td=>{
+
+    const textoOriginal = td.innerText;
+
+    const textoNormal = normalizarTexto(textoOriginal);
+    const termoNormal = normalizarTexto(termo);
+
+    const index = textoNormal.indexOf(termoNormal);
+
+    if(index >= 0){
+
+      const antes = textoOriginal.substring(0,index);
+      const meio = textoOriginal.substring(index,index+termo.length);
+      const depois = textoOriginal.substring(index+termo.length);
+
+      td.innerHTML = `${antes}<mark style="background:#fde047;padding:0 2px;border-radius:4px;">${meio}</mark>${depois}`;
+    }
+
+  });
+
+}
+
+function buscar(valor){
+
+  const termo = valor.toUpperCase();
+  const coluna = document.getElementById("colunaBusca").value;
+
+  const linhas = document.querySelectorAll("#lista tr");
+
+  linhas.forEach(linha=>{
+
+    const tds = linha.querySelectorAll("td");
+
+    const codigo = tds[0]?.innerText.toUpperCase() || "";
+    const nome = tds[1]?.innerText.toUpperCase() || "";
+    const fornecedor = tds[2]?.innerText.toUpperCase() || "";
+
+    let textoBusca = "";
+
+    if(coluna==="codigo") textoBusca = codigo;
+    else if(coluna==="nome") textoBusca = nome;
+    else if(coluna==="fornecedor") textoBusca = fornecedor;
+    else textoBusca = linha.innerText.toUpperCase();
+
+    linha.style.display =
+      textoBusca.includes(termo) ? "" : "none";
+
+  });
+
+}
+
+function buscar(valor){
+
+  const termo = valor.toUpperCase();
+  const coluna = document.getElementById("colunaBusca").value;
+
+  const linhas = document.querySelectorAll("#lista tr");
+
+  linhas.forEach(linha=>{
+
+    const tds = linha.querySelectorAll("td");
+
+    const codigo = tds[0]?.innerText.toUpperCase() || "";
+    const nome = tds[1]?.innerText.toUpperCase() || "";
+    const fornecedor = tds[2]?.innerText.toUpperCase() || "";
+
+    let textoBusca = "";
+
+    if(coluna==="codigo") textoBusca = codigo;
+    else if(coluna==="nome") textoBusca = nome;
+    else if(coluna==="fornecedor") textoBusca = fornecedor;
+    else textoBusca = linha.innerText.toUpperCase();
+
+    linha.style.display =
+      textoBusca.includes(termo) ? "" : "none";
+
+  });
+
+}
+
+let ordemAsc = true;
+
+function ordenarTabela(coluna){
+
+  const tbody = document.getElementById("lista");
+  const linhas = Array.from(tbody.querySelectorAll("tr"));
+
+  linhas.sort((a,b)=>{
+
+    const A = a.children[coluna].innerText.trim().toUpperCase();
+    const B = b.children[coluna].innerText.trim().toUpperCase();
+
+    if(!isNaN(A) && !isNaN(B)){
+      return ordemAsc
+        ? Number(A)-Number(B)
+        : Number(B)-Number(A);
+    }
+
+    return ordemAsc
+      ? A.localeCompare(B)
+      : B.localeCompare(A);
+
+  });
+
+  ordemAsc = !ordemAsc;
+
+  tbody.innerHTML = "";
+  linhas.forEach(l=>tbody.appendChild(l));
+}
 
 /* ================= INIT ================= */
 
@@ -543,6 +672,8 @@ window.onload=()=>{
  carregarFornecedores();
  gerarCodigoAutomatico();
 };
+
+
 
 </script>
 
