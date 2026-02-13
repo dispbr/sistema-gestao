@@ -39,42 +39,55 @@ function authenticateToken(req, res, next) {
 async function criarTabelas() {
 
   await pool.query(`
-  CREATE TABLE IF NOT EXISTS products (
-    id SERIAL PRIMARY KEY,
-    codigo VARCHAR(100),
-    nome VARCHAR(200),
-    fornecedor VARCHAR(200),
-    estoque INTEGER DEFAULT 0,
-    preco_custo NUMERIC DEFAULT 0,
-    preco_venda NUMERIC DEFAULT 0
-  );
-`);
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      username VARCHAR(100) UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      role VARCHAR(20) DEFAULT 'user'
+    );
+  `);
 
-await pool.query(`
-  ALTER TABLE products
-  ADD COLUMN IF NOT EXISTS sku VARCHAR(100);
-`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS suppliers (
+      id SERIAL PRIMARY KEY,
+      nome VARCHAR(200) UNIQUE NOT NULL
+    );
+  `);
 
-await pool.query(`
-  ALTER TABLE products
-  ADD COLUMN IF NOT EXISTS cor VARCHAR(100);
-`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS products (
+      id SERIAL PRIMARY KEY,
+      codigo VARCHAR(100),
+      nome VARCHAR(200),
+      fornecedor VARCHAR(200),
+      estoque INTEGER DEFAULT 0,
+      preco_custo NUMERIC DEFAULT 0,
+      preco_venda NUMERIC DEFAULT 0
+    );
+  `);
 
-await pool.query(`
-  ALTER TABLE products
-  ADD COLUMN IF NOT EXISTS tamanho VARCHAR(100);
-`);
+  await pool.query(`
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS sku VARCHAR(100);
+  `);
 
-await pool.query(`
-  ALTER TABLE products
-  ADD COLUMN IF NOT EXISTS variacao VARCHAR(50);
-`);
+  await pool.query(`
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS cor VARCHAR(100);
+  `);
 
-await pool.query(`
-  ALTER TABLE products
-  ADD COLUMN IF NOT EXISTS barcode VARCHAR(100);
-`);
+  await pool.query(`
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS tamanho VARCHAR(100);
+  `);
 
+  await pool.query(`
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS variacao VARCHAR(50);
+  `);
+
+  await pool.query(`
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS barcode VARCHAR(100);
+  `);
+
+  console.log("Tabelas verificadas");
+}
 
 /* ================= LOGIN ================= */
 
