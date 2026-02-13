@@ -47,13 +47,13 @@
 <div>
 <label>Tamanho</label>
 <select id="tamanho">
-  <option value="">Selecione</option>
-  <option>P</option>
-  <option>M</option>
-  <option>G</option>
-  <option>GG</option>
-  <option>ÚNICO</option>
-  <option>VARIADOS</option>
+<option value="">Selecione</option>
+<option>P</option>
+<option>M</option>
+<option>G</option>
+<option>GG</option>
+<option>ÚNICO</option>
+<option>VARIADOS</option>
 </select>
 </div>
 
@@ -83,10 +83,9 @@
 </div>
 
 <div>
-<label>Código de Barras</label>
+<label>NCM</label>
 <div class="barcode">
 <input id="barcode">
-<button class="btn blue small" onclick="gerarCodigo()">Gerar</button>
 </div>
 </div>
 
@@ -105,11 +104,12 @@
 <th>SKU</th>
 <th>Cor</th>
 <th>Tamanho</th>
+<th>SKU Completo</th>
 <th>Estoque</th>
 <th>Custo</th>
 <th>Venda</th>
 <th>Variação</th>
-<th>Barras</th>
+<th>NCM</th>
 <th>Ação</th>
 </tr>
 </thead>
@@ -119,93 +119,76 @@
 </section>
 </main>
 
-<!-- MODAL FORNECEDORES -->
-<div class="modal-bg" id="modalFornecedor">
-<div class="modal">
-<h3>Gerenciar Fornecedores</h3>
-
-<div style="display:flex; gap:10px; margin-bottom:20px;">
-<input id="novoFornecedor" placeholder="Novo fornecedor">
-<button class="btn green" onclick="adicionarFornecedor()">Salvar</button>
-</div>
-
-<table class="tabela">
-<thead>
-<tr>
-<th>Fornecedor</th>
-<th>Ação</th>
-</tr>
-</thead>
-<tbody id="listaFornecedores"></tbody>
-</table>
-
-<button class="btn-close" onclick="fecharModal()">Fechar</button>
-</div>
-</div>
-
 <script>
 
 const token = localStorage.getItem("token");
-if(!token){
-  window.location.href = "login.html";
-}
+if(!token) window.location.href="login.html";
 
-/* ================= MAIÚSCULO AUTOMÁTICO ================= */
+/* ================= MAIÚSCULO ================= */
 
 document.addEventListener("input", function(e){
-  if(e.target.tagName === "INPUT"){
-    if(e.target.id !== "custo" && e.target.id !== "venda"){
+  if(e.target.tagName === "INPUT" || e.target.tagName === "SELECT"){
+    if(e.target.id !== "custo" && e.target.id !== "venda" && e.target.id !== "variacao"){
       e.target.value = e.target.value.toUpperCase();
     }
   }
 });
 
-/* ================= SKU COMPLETO AUTOMÁTICO ================= */
+/* ================= SKU COMPLETO ================= */
+
+const skuInput = document.getElementById("sku");
+const corInput = document.getElementById("cor");
+const tamanhoInput = document.getElementById("tamanho");
+const skuCompletoInput = document.getElementById("skuCompleto");
 
 function atualizarSKU(){
-  const skuVal = sku.value || "";
-  const corVal = cor.value || "";
-  const tamanhoVal = tamanho.value || "";
+  const skuVal = skuInput.value.trim();
+  const corVal = corInput.value.trim();
+  const tamanhoVal = tamanhoInput.value.trim();
 
-  skuCompleto.value = `${skuVal}-${corVal}-${tamanhoVal}`;
+  if(!skuVal && !corVal && !tamanhoVal){
+    skuCompletoInput.value="";
+    return;
+  }
+
+  skuCompletoInput.value = `${skuVal}-${corVal}-${tamanhoVal}`;
 }
 
-sku.addEventListener("input", atualizarSKU);
-cor.addEventListener("input", atualizarSKU);
-tamanho.addEventListener("change", atualizarSKU);
+skuInput.addEventListener("keyup", atualizarSKU);
+corInput.addEventListener("keyup", atualizarSKU);
+tamanhoInput.addEventListener("change", atualizarSKU);
 
 /* ================= CARREGAR PRODUTOS ================= */
 
 async function carregarProdutos(){
 
-  const res = await fetch("/products",{
-    headers:{ Authorization:"Bearer " + token }
-  });
-
+  const res = await fetch("/products",{ headers:{ Authorization:"Bearer "+token }});
   const produtos = await res.json();
 
-  lista.innerHTML = "";
+  lista.innerHTML="";
 
   produtos.forEach(p=>{
+
     lista.innerHTML += `
     <tr data-id="${p.id}">
       <td>${p.codigo}</td>
-      <td contenteditable="true" data-campo="nome">${p.nome || ""}</td>
-      <td contenteditable="true" data-campo="fornecedor">${p.fornecedor || ""}</td>
-      <td contenteditable="true" data-campo="sku">${p.sku || ""}</td>
-      <td contenteditable="true" data-campo="cor">${p.cor || ""}</td>
-      <td contenteditable="true" data-campo="tamanho">${p.tamanho || ""}</td>
-      <td contenteditable="true" data-campo="estoque">${p.estoque || 0}</td>
-      <td contenteditable="true" data-campo="preco_custo">${p.preco_custo || 0}</td>
-      <td contenteditable="true" data-campo="preco_venda">${p.preco_venda || 0}</td>
-      <td>${p.variacao || ""}</td>
-      <td contenteditable="true" data-campo="barcode">${p.barcode || ""}</td>
+      <td contenteditable data-campo="nome">${p.nome||""}</td>
+      <td contenteditable data-campo="fornecedor">${p.fornecedor||""}</td>
+      <td contenteditable data-campo="sku">${p.sku||""}</td>
+      <td contenteditable data-campo="cor">${p.cor||""}</td>
+      <td contenteditable data-campo="tamanho">${p.tamanho||""}</td>
+      <td>${p.sku_completo || (p.sku+"-"+p.cor+"-"+p.tamanho)}</td>
+      <td contenteditable data-campo="estoque">${p.estoque||0}</td>
+      <td contenteditable data-campo="preco_custo">${p.preco_custo||0}</td>
+      <td contenteditable data-campo="preco_venda">${p.preco_venda||0}</td>
+      <td>${p.variacao||""}</td>
+      <td contenteditable data-campo="barcode">${p.barcode||""}</td>
       <td><button onclick="excluirProduto(${p.id})">🗑</button></td>
     </tr>`;
   });
 }
 
-/* ================= SALVAR PRODUTO ================= */
+/* ================= SALVAR ================= */
 
 async function salvar(){
 
@@ -216,6 +199,7 @@ async function salvar(){
     sku: sku.value,
     cor: cor.value,
     tamanho: tamanho.value,
+    sku_completo: skuCompleto.value,
     estoque: estoque.value,
     preco_custo: limparMoeda(custo.value),
     preco_venda: limparMoeda(venda.value),
@@ -227,17 +211,13 @@ async function salvar(){
     method:"POST",
     headers:{
       "Content-Type":"application/json",
-      Authorization:"Bearer " + token
+      Authorization:"Bearer "+token
     },
     body: JSON.stringify(dados)
   });
 
-  if(!res.ok){
-    alert("Erro ao salvar");
-    return;
-  }
+  if(!res.ok){ alert("Erro ao salvar"); return; }
 
-  alert("Produto salvo com sucesso!");
   limparFormulario();
   carregarProdutos();
   gerarCodigoAutomatico();
@@ -254,151 +234,62 @@ document.addEventListener("blur", async function(e){
   const id = row.dataset.id;
   let valor = e.target.innerText;
 
-  if(campo === "estoque"){
-    valor = parseInt(valor) || 0;
-  }
-
-  if(campo === "preco_custo" || campo === "preco_venda"){
-    valor = parseFloat(valor) || 0;
-  }
-
-  await fetch("/products/" + id + "/campo",{
+  await fetch("/products/"+id+"/campo",{
     method:"PUT",
     headers:{
       "Content-Type":"application/json",
-      Authorization:"Bearer " + token
+      Authorization:"Bearer "+token
     },
-    body: JSON.stringify({ campo, valor })
+    body: JSON.stringify({campo,valor})
   });
 
-  e.target.style.background = "#dcfce7";
-  setTimeout(()=> e.target.style.background="",500);
+  e.target.style.background="#dcfce7";
+  setTimeout(()=>e.target.style.background="",500);
 
 }, true);
 
 /* ================= DELETE ================= */
 
 async function excluirProduto(id){
-
-  if(!confirm("Deseja excluir este produto?")) return;
-
-  await fetch("/products/" + id,{
-    method:"DELETE",
-    headers:{ Authorization:"Bearer " + token }
-  });
-
+  if(!confirm("Deseja excluir?")) return;
+  await fetch("/products/"+id,{method:"DELETE",headers:{Authorization:"Bearer "+token}});
   carregarProdutos();
 }
 
-/* ================= FORNECEDORES ================= */
-
-async function carregarFornecedores(){
-
-  const res = await fetch("/suppliers",{
-    headers:{ Authorization:"Bearer " + token }
-  });
-
-  const fornecedores = await res.json();
-
-  fornecedor.innerHTML = "<option value=''>Selecione</option>";
-  listaFornecedores.innerHTML = "";
-
-  fornecedores.forEach(f=>{
-    fornecedor.innerHTML += `<option>${f.nome}</option>`;
-    listaFornecedores.innerHTML += `
-      <tr>
-        <td>${f.nome}</td>
-        <td><button onclick="excluirFornecedor(${f.id})">🗑</button></td>
-      </tr>`;
-  });
-}
-
-async function adicionarFornecedor(){
-
-  if(!novoFornecedor.value) return;
-
-  await fetch("/suppliers",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      Authorization:"Bearer " + token
-    },
-    body: JSON.stringify({nome:novoFornecedor.value})
-  });
-
-  novoFornecedor.value="";
-  carregarFornecedores();
-}
-
-async function excluirFornecedor(id){
-
-  await fetch("/suppliers/" + id,{
-    method:"DELETE",
-    headers:{ Authorization:"Bearer " + token }
-  });
-
-  carregarFornecedores();
-}
-
-/* ================= CÓDIGO AUTOMÁTICO ================= */
-
-async function gerarCodigoAutomatico(){
-
-  const res = await fetch("/products/next-code",{
-    headers:{ Authorization:"Bearer " + token }
-  });
-
-  const data = await res.json();
-  codigo.value = data.codigo;
-}
-
-/* ================= MÁSCARA R$ ================= */
+/* ================= VARIAÇÃO ================= */
 
 function limparMoeda(valor){
-  return parseFloat(valor.replace(/[^\d]/g,'')) / 100 || 0;
+  return parseFloat(valor.replace(/[^\d]/g,''))/100 || 0;
 }
 
 function formatarMoedaInput(input){
-
-  let valor = input.value.replace(/\D/g,'');
-
-  if(!valor){
-    input.value="";
-    return;
-  }
-
-  valor = (valor/100).toFixed(2)+'';
-  valor = valor.replace(".", ",");
-  valor = valor.replace(/\B(?=(\d{3})+(?!\d))/g,".");
-
-  input.value = "R$ " + valor;
+  let valor=input.value.replace(/\D/g,'');
+  if(!valor){ input.value=""; return; }
+  valor=(valor/100).toFixed(2)+'';
+  valor=valor.replace(".",",");
+  valor=valor.replace(/\B(?=(\d{3})+(?!\d))/g,".");
+  input.value="R$ "+valor;
 }
 
 function calcularVariacao(){
-
-  const custoNumero = limparMoeda(custo.value);
-  const vendaNumero = limparMoeda(venda.value);
-
-  if(!custoNumero || !vendaNumero){
-    variacao.value="";
-    return;
-  }
-
-  const resultado = ((vendaNumero - custoNumero) / custoNumero) * 100;
-  variacao.value = resultado.toFixed(2) + "%";
+  const custoNumero=limparMoeda(custo.value);
+  const vendaNumero=limparMoeda(venda.value);
+  if(!custoNumero||!vendaNumero){ variacao.value=""; return;}
+  const resultado=((vendaNumero-custoNumero)/custoNumero)*100;
+  variacao.value=resultado.toFixed(2)+"%";
 }
 
-custo.addEventListener("input", function(){
+custo.addEventListener("input",function(){
   formatarMoedaInput(this);
   calcularVariacao();
 });
 
-venda.addEventListener("input", function(){
+venda.addEventListener("input",function(){
   formatarMoedaInput(this);
   calcularVariacao();
 });
 
-/* ================= LIMPAR ================= */
+/* ================= UTIL ================= */
 
 function limparFormulario(){
   nome.value="";
@@ -412,11 +303,14 @@ function limparFormulario(){
   barcode.value="";
 }
 
-/* ================= INIT ================= */
+async function gerarCodigoAutomatico(){
+  const res = await fetch("/products/next-code",{headers:{Authorization:"Bearer "+token}});
+  const data = await res.json();
+  codigo.value=data.codigo;
+}
 
-window.onload = function(){
+window.onload=function(){
   carregarProdutos();
-  carregarFornecedores();
   gerarCodigoAutomatico();
 };
 
