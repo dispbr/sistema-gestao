@@ -28,13 +28,13 @@ function authenticateToken(req, res, next) {
   if (!token) return res.status(401).json({ error: "Token não enviado" });
 
   jwt.verify(token, SECRET, (err, user) => {
-    if (err) return res.status(403).json({ error: "Token inválido ou expirado" });
+    if (err) return res.status(403).json({ error: "Token inválido" });
     req.user = user;
     next();
   });
 }
 
-/* ================= CRIAR TABELAS ================= */
+/* ================= CRIAR / ATUALIZAR TABELAS ================= */
 
 async function criarTabelas() {
 
@@ -66,28 +66,36 @@ async function criarTabelas() {
     );
   `);
 
+  /* GARANTE QUE AS COLUNAS EXISTEM */
   await pool.query(`
-    ALTER TABLE products ADD COLUMN IF NOT EXISTS sku VARCHAR(100);
+    ALTER TABLE products 
+    ADD COLUMN IF NOT EXISTS sku VARCHAR(100);
   `);
 
   await pool.query(`
-    ALTER TABLE products ADD COLUMN IF NOT EXISTS cor VARCHAR(100);
+    ALTER TABLE products 
+    ADD COLUMN IF NOT EXISTS cor VARCHAR(100);
   `);
 
   await pool.query(`
-    ALTER TABLE products ADD COLUMN IF NOT EXISTS tamanho VARCHAR(100);
+    ALTER TABLE products 
+    ADD COLUMN IF NOT EXISTS tamanho VARCHAR(100);
   `);
 
   await pool.query(`
-    ALTER TABLE products ADD COLUMN IF NOT EXISTS variacao VARCHAR(50);
+    ALTER TABLE products 
+    ADD COLUMN IF NOT EXISTS variacao VARCHAR(50);
   `);
 
   await pool.query(`
-    ALTER TABLE products ADD COLUMN IF NOT EXISTS barcode VARCHAR(100);
+    ALTER TABLE products 
+    ADD COLUMN IF NOT EXISTS barcode VARCHAR(100);
   `);
 
-  console.log("Tabelas verificadas");
+  console.log("Tabelas verificadas ✔");
 }
+
+criarTabelas();
 
 /* ================= LOGIN ================= */
 
@@ -134,18 +142,16 @@ app.post("/suppliers", authenticateToken, async (req, res) => {
   try {
     const { nome } = req.body;
     await pool.query("INSERT INTO suppliers (nome) VALUES ($1)", [nome]);
-    res.json({ message: "Fornecedor criado" });
+    res.json({ success: true });
   } catch {
     res.status(400).json({ error: "Fornecedor já existe" });
   }
 });
 
-app.delete("/suppliers/:id", authenticateToken, async (req,res)=>{
+app.delete("/suppliers/:id", authenticateToken, async (req, res) => {
   const id = parseInt(req.params.id);
-  if(isNaN(id)) return res.status(400).json({error:"ID inválido"});
-
-  await pool.query("DELETE FROM suppliers WHERE id=$1",[id]);
-  res.json({success:true});
+  await pool.query("DELETE FROM suppliers WHERE id=$1", [id]);
+  res.json({ success: true });
 });
 
 /* ================= PRODUTOS ================= */
@@ -161,9 +167,8 @@ app.get("/products", authenticateToken, async (req, res) => {
   res.json(result.rows);
 });
 
-/* ===== GERAR PRÓXIMO CÓDIGO SEGURO ===== */
-
-app.get("/products/next-code", authenticateToken, async (req,res)=>{
+/* GERAR PRÓXIMO CÓDIGO */
+app.get("/products/next-code", authenticateToken, async (req, res) => {
 
   const result = await pool.query(`
     SELECT MAX(CAST(codigo AS INTEGER)) as ultimo 
@@ -173,25 +178,22 @@ app.get("/products/next-code", authenticateToken, async (req,res)=>{
 
   let ultimo = result.rows[0].ultimo || 0;
   let proximo = parseInt(ultimo) + 1;
-  let codigoFormatado = String(proximo).padStart(4,'0');
 
-  res.json({ codigo: codigoFormatado });
+  res.json({
+    codigo: String(proximo).padStart(4, "0")
+  });
 });
 
-/* ===== CRIAR PRODUTO ===== */
-
+/* CRIAR PRODUTO */
 app.post("/products", authenticateToken, async (req, res) => {
   try {
+
     const {
       codigo, nome, fornecedor,
       sku, cor, tamanho,
       estoque, preco_custo,
       preco_venda, variacao, barcode
     } = req.body;
-
-    const estoqueNumero = parseInt(estoque) || 0;
-    const custoNumero = parseFloat(preco_custo) || 0;
-    const vendaNumero = parseFloat(preco_venda) || 0;
 
     const result = await pool.query(`
       INSERT INTO products
@@ -206,9 +208,9 @@ app.post("/products", authenticateToken, async (req, res) => {
       sku || "",
       cor || "",
       tamanho || "",
-      estoqueNumero,
-      custoNumero,
-      vendaNumero,
+      parseInt(estoque) || 0,
+      parseFloat(preco_custo) || 0,
+      parseFloat(preco_venda) || 0,
       variacao || "",
       barcode || ""
     ]);
@@ -216,72 +218,58 @@ app.post("/products", authenticateToken, async (req, res) => {
     res.json(result.rows[0]);
 
   } catch (err) {
-    console.error(err);
+    console.error("ERRO AO SALVAR:", err);
     res.status(500).json({ error: "Erro ao salvar produto" });
   }
 });
 
-/* ===== INLINE UPDATE ===== */
+/* INLINE UPDATE */
+app.put("/products/:id/campo", authenticateToken, async (req, res) => {
 
-app.put("/products/:id/campo", authenticateToken, async (req,res)=>{
-
-  if(req.user.role !== "admin"){
-    return res.status(403).json({error:"Somente admin pode editar"});
-  }
+  if (req.user.role !== "admin")
+    return res.status(403).json({ error: "Somente admin pode editar" });
 
   const id = parseInt(req.params.id);
-  if(isNaN(id)) return res.status(400).json({error:"ID inválido"});
-
   const { campo, valor } = req.body;
 
   const camposPermitidos = [
     "nome","fornecedor","sku","cor",
-    "tamanho","estoque","preco_custo",
-    "preco_venda","barcode"
+    "tamanho","estoque",
+    "preco_custo","preco_venda","barcode"
   ];
 
-  if(!camposPermitidos.includes(campo)){
-    return res.status(400).json({error:"Campo inválido"});
-  }
+  if (!camposPermitidos.includes(campo))
+    return res.status(400).json({ error: "Campo inválido" });
 
   let valorFinal = valor;
 
-  if(campo === "estoque"){
+  if (campo === "estoque")
     valorFinal = parseInt(valor) || 0;
-  }
 
-  if(campo === "preco_custo" || campo === "preco_venda"){
+  if (campo === "preco_custo" || campo === "preco_venda")
     valorFinal = parseFloat(valor) || 0;
-  }
 
   await pool.query(
     `UPDATE products SET ${campo}=$1 WHERE id=$2`,
     [valorFinal, id]
   );
 
-  res.json({success:true});
+  res.json({ success: true });
 });
 
-/* ===== DELETE PRODUTO ===== */
-
+/* DELETE PRODUTO */
 app.delete("/products/:id", authenticateToken, async (req, res) => {
-
   const id = parseInt(req.params.id);
-  if(isNaN(id)) return res.status(400).json({error:"ID inválido"});
-
-  await pool.query("DELETE FROM products WHERE id=$1",[id]);
-
-  res.json({success:true});
+  await pool.query("DELETE FROM products WHERE id=$1", [id]);
+  res.json({ success: true });
 });
 
-/* ================= ROOT ================= */
-
+/* ROOT */
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/login.html"));
 });
 
-/* ================= START ================= */
-
+/* START */
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
