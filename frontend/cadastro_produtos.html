@@ -18,7 +18,6 @@
   <button class="btn green" onclick="abrirModal()">Gerenciar Fornecedores</button>
 </div>
 
-
 <div class="form-grid">
 
 <div>
@@ -86,9 +85,7 @@
 
 <div>
 <label>NCM</label>
-<div class="barcode">
 <input id="barcode">
-</div>
 </div>
 
 </div>
@@ -121,214 +118,184 @@
 </section>
 </main>
 
+<!-- MODAL FORNECEDORES -->
+<div class="modal-bg" id="modalFornecedor">
+<div class="modal">
+
+<h3>Gerenciar Fornecedores</h3>
+
+<div style="display:flex; gap:10px; margin-bottom:20px;">
+<input id="novoFornecedor" placeholder="Novo fornecedor">
+<button class="btn green" onclick="adicionarFornecedor()">Salvar</button>
+</div>
+
+<table class="tabela">
+<thead>
+<tr>
+<th>Fornecedor</th>
+<th>Ação</th>
+</tr>
+</thead>
+<tbody id="listaFornecedores"></tbody>
+</table>
+
+<button class="btn-close" onclick="fecharModal()">Fechar</button>
+
+</div>
+</div>
+
 <script>
 
 const token = localStorage.getItem("token");
 if(!token) window.location.href="login.html";
 
 /* ================= MAIÚSCULO ================= */
-
 document.addEventListener("input", function(e){
-  if(e.target.tagName === "INPUT" || e.target.tagName === "SELECT"){
-    if(e.target.id !== "custo" && e.target.id !== "venda" && e.target.id !== "variacao"){
-      e.target.value = e.target.value.toUpperCase();
+  if(e.target.tagName==="INPUT"||e.target.tagName==="SELECT"){
+    if(!["custo","venda","variacao"].includes(e.target.id)){
+      e.target.value=e.target.value.toUpperCase();
     }
   }
 });
 
 /* ================= SKU COMPLETO ================= */
-
-const skuInput = document.getElementById("sku");
-const corInput = document.getElementById("cor");
-const tamanhoInput = document.getElementById("tamanho");
-const skuCompletoInput = document.getElementById("skuCompleto");
+const skuInput=document.getElementById("sku");
+const corInput=document.getElementById("cor");
+const tamanhoInput=document.getElementById("tamanho");
+const skuCompletoInput=document.getElementById("skuCompleto");
 
 function atualizarSKU(){
-  const skuVal = skuInput.value.trim();
-  const corVal = corInput.value.trim();
-  const tamanhoVal = tamanhoInput.value.trim();
-
-  if(!skuVal && !corVal && !tamanhoVal){
-    skuCompletoInput.value="";
-    return;
-  }
-
-  skuCompletoInput.value = `${skuVal}-${corVal}-${tamanhoVal}`;
+  skuCompletoInput.value=`${skuInput.value}-${corInput.value}-${tamanhoInput.value}`;
 }
-
-skuInput.addEventListener("keyup", atualizarSKU);
-corInput.addEventListener("keyup", atualizarSKU);
-tamanhoInput.addEventListener("change", atualizarSKU);
+skuInput.addEventListener("keyup",atualizarSKU);
+corInput.addEventListener("keyup",atualizarSKU);
+tamanhoInput.addEventListener("change",atualizarSKU);
 
 /* ================= CARREGAR PRODUTOS ================= */
-
 async function carregarProdutos(){
-
-  const res = await fetch("/products",{ headers:{ Authorization:"Bearer "+token }});
-  const produtos = await res.json();
-
+  const res=await fetch("/products",{headers:{Authorization:"Bearer "+token}});
+  const produtos=await res.json();
   lista.innerHTML="";
-
   produtos.forEach(p=>{
-
-    lista.innerHTML += `
-    <tr data-id="${p.id}">
-      <td>${p.codigo}</td>
-      <td contenteditable data-campo="nome">${p.nome||""}</td>
-      <td contenteditable data-campo="fornecedor">${p.fornecedor||""}</td>
-      <td contenteditable data-campo="sku">${p.sku||""}</td>
-      <td contenteditable data-campo="cor">${p.cor||""}</td>
-      <td contenteditable data-campo="tamanho">${p.tamanho||""}</td>
-      <td>${p.sku_completo || (p.sku+"-"+p.cor+"-"+p.tamanho)}</td>
-      <td contenteditable data-campo="estoque">${p.estoque||0}</td>
-      <td contenteditable data-campo="preco_custo">${p.preco_custo||0}</td>
-      <td contenteditable data-campo="preco_venda">${p.preco_venda||0}</td>
-      <td>${p.variacao||""}</td>
-      <td contenteditable data-campo="barcode">${p.barcode||""}</td>
-      <td><button onclick="excluirProduto(${p.id})">🗑</button></td>
-    </tr>`;
+    lista.innerHTML+=`
+<tr data-id="${p.id}">
+<td>${p.codigo}</td>
+<td contenteditable data-campo="nome">${p.nome||""}</td>
+<td contenteditable data-campo="fornecedor">${p.fornecedor||""}</td>
+<td contenteditable data-campo="sku">${p.sku||""}</td>
+<td contenteditable data-campo="cor">${p.cor||""}</td>
+<td contenteditable data-campo="tamanho">${p.tamanho||""}</td>
+<td>${p.sku_completo||""}</td>
+<td contenteditable data-campo="estoque">${p.estoque||0}</td>
+<td contenteditable data-campo="preco_custo">${p.preco_custo||0}</td>
+<td contenteditable data-campo="preco_venda">${p.preco_venda||0}</td>
+<td>${p.variacao||""}</td>
+<td contenteditable data-campo="barcode">${p.barcode||""}</td>
+<td><button onclick="excluirProduto(${p.id})">🗑</button></td>
+</tr>`;
   });
 }
 
 /* ================= SALVAR ================= */
-
 async function salvar(){
-
-  const dados = {
-    codigo: codigo.value,
-    nome: nome.value,
-    fornecedor: fornecedor.value,
-    sku: sku.value,
-    cor: cor.value,
-    tamanho: tamanho.value,
-    sku_completo: skuCompleto.value,
-    estoque: estoque.value,
-    preco_custo: limparMoeda(custo.value),
-    preco_venda: limparMoeda(venda.value),
-    variacao: variacao.value,
-    barcode: barcode.value
+  const dados={
+    codigo:codigo.value,
+    nome:nome.value,
+    fornecedor:fornecedor.value,
+    sku:sku.value,
+    cor:cor.value,
+    tamanho:tamanho.value,
+    sku_completo:skuCompleto.value,
+    estoque:estoque.value,
+    preco_custo:limparMoeda(custo.value),
+    preco_venda:limparMoeda(venda.value),
+    variacao:variacao.value,
+    barcode:barcode.value
   };
 
-  const res = await fetch("/products",{
+  const res=await fetch("/products",{
     method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      Authorization:"Bearer "+token
-    },
-    body: JSON.stringify(dados)
+    headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
+    body:JSON.stringify(dados)
   });
 
-  if(!res.ok){ alert("Erro ao salvar"); return; }
+  if(!res.ok){alert("Erro ao salvar");return;}
 
   limparFormulario();
   carregarProdutos();
   gerarCodigoAutomatico();
 }
 
-/* ================= INLINE UPDATE ================= */
-
-document.addEventListener("blur", async function(e){
-
-  if(!e.target.hasAttribute("contenteditable")) return;
-
-  const campo = e.target.dataset.campo;
-  const row = e.target.closest("tr");
-  const id = row.dataset.id;
-  let valor = e.target.innerText;
-
-  await fetch("/products/"+id+"/campo",{
-    method:"PUT",
-    headers:{
-      "Content-Type":"application/json",
-      Authorization:"Bearer "+token
-    },
-    body: JSON.stringify({campo,valor})
-  });
-
-  e.target.style.background="#dcfce7";
-  setTimeout(()=>e.target.style.background="",500);
-
-}, true);
-
 /* ================= DELETE ================= */
-
 async function excluirProduto(id){
-  if(!confirm("Deseja excluir?")) return;
+  if(!confirm("Deseja excluir?"))return;
   await fetch("/products/"+id,{method:"DELETE",headers:{Authorization:"Bearer "+token}});
   carregarProdutos();
 }
 
 /* ================= VARIAÇÃO ================= */
-
-function limparMoeda(valor){
-  return parseFloat(valor.replace(/[^\d]/g,''))/100 || 0;
-}
-
+function limparMoeda(v){return parseFloat(v.replace(/[^\d]/g,''))/100||0;}
 function formatarMoedaInput(input){
-  let valor=input.value.replace(/\D/g,'');
-  if(!valor){ input.value=""; return; }
-  valor=(valor/100).toFixed(2)+'';
-  valor=valor.replace(".",",");
-  valor=valor.replace(/\B(?=(\d{3})+(?!\d))/g,".");
-  input.value="R$ "+valor;
+  let v=input.value.replace(/\D/g,'');
+  if(!v){input.value="";return;}
+  v=(v/100).toFixed(2)+'';
+  v=v.replace(".",",");
+  v=v.replace(/\B(?=(\d{3})+(?!\d))/g,".");
+  input.value="R$ "+v;
 }
-
 function calcularVariacao(){
-  const custoNumero=limparMoeda(custo.value);
-  const vendaNumero=limparMoeda(venda.value);
-  if(!custoNumero||!vendaNumero){ variacao.value=""; return;}
-  const resultado=((vendaNumero-custoNumero)/custoNumero)*100;
-  variacao.value=resultado.toFixed(2)+"%";
+  const c=limparMoeda(custo.value);
+  const v=limparMoeda(venda.value);
+  if(!c||!v){variacao.value="";return;}
+  variacao.value=(((v-c)/c)*100).toFixed(2)+"%";
 }
+custo.addEventListener("input",function(){formatarMoedaInput(this);calcularVariacao();});
+venda.addEventListener("input",function(){formatarMoedaInput(this);calcularVariacao();});
 
-custo.addEventListener("input",function(){
-  formatarMoedaInput(this);
-  calcularVariacao();
-});
-
-venda.addEventListener("input",function(){
-  formatarMoedaInput(this);
-  calcularVariacao();
-});
-
-/* ================= UTIL ================= */
-
-function limparFormulario(){
-  nome.value="";
-  sku.value="";
-  cor.value="";
-  tamanho.value="";
-  estoque.value="";
-  custo.value="";
-  venda.value="";
-  variacao.value="";
-  barcode.value="";
-}
-
+/* ================= CÓDIGO AUTOMÁTICO ================= */
 async function gerarCodigoAutomatico(){
-  const res = await fetch("/products/next-code",{headers:{Authorization:"Bearer "+token}});
-  const data = await res.json();
+  const res=await fetch("/products/next-code",{headers:{Authorization:"Bearer "+token}});
+  const data=await res.json();
   codigo.value=data.codigo;
 }
 
-window.onload=function(){
-  carregarProdutos();
-  gerarCodigoAutomatico();
-};
+/* ================= FORNECEDORES ================= */
+async function carregarFornecedores(){
+  const res=await fetch("/suppliers",{headers:{Authorization:"Bearer "+token}});
+  const fornecedores=await res.json();
+  fornecedor.innerHTML="<option value=''>Selecione</option>";
+  listaFornecedores.innerHTML="";
+  fornecedores.forEach(f=>{
+    fornecedor.innerHTML+=`<option>${f.nome}</option>`;
+    listaFornecedores.innerHTML+=`
+<tr>
+<td>${f.nome}</td>
+<td><button onclick="excluirFornecedor(${f.id})">🗑</button></td>
+</tr>`;
+  });
+}
+async function adicionarFornecedor(){
+  if(!novoFornecedor.value)return;
+  await fetch("/suppliers",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},body:JSON.stringify({nome:novoFornecedor.value})});
+  novoFornecedor.value="";
+  carregarFornecedores();
+}
+async function excluirFornecedor(id){
+  await fetch("/suppliers/"+id,{method:"DELETE",headers:{Authorization:"Bearer "+token}});
+  carregarFornecedores();
+}
 
 /* ================= MODAL ================= */
+function abrirModal(){document.getElementById("modalFornecedor").style.display="flex";}
+function fecharModal(){document.getElementById("modalFornecedor").style.display="none";}
+function voltarDashboard(){window.location.href="dashboard.html";}
 
-function abrirModal(){
-  document.getElementById("modalFornecedor").style.display = "flex";
-}
-
-function fecharModal(){
-  document.getElementById("modalFornecedor").style.display = "none";
-}
-
-function voltarDashboard(){
-  window.location.href = "dashboard.html";
-}
+/* ================= INIT ================= */
+window.onload=function(){
+  carregarProdutos();
+  carregarFornecedores();
+  gerarCodigoAutomatico();
+};
 
 </script>
 
