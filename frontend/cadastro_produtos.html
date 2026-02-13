@@ -123,13 +123,16 @@
 <th onclick="ordenarTabela(3)">SKU ⬍</th>
 <th onclick="ordenarTabela(4)">Cor ⬍</th>
 <th onclick="ordenarTabela(5)">Tamanho ⬍</th>
-<th onclick="ordenarTabela(6)">SKU Completo ⬍</th>
+<th>SKU Completo</th>
 <th onclick="ordenarTabela(7)">Estoque ⬍</th>
 <th onclick="ordenarTabela(8)">Custo ⬍</th>
 <th onclick="ordenarTabela(9)">Venda ⬍</th>
-<th onclick="ordenarTabela(10)">Variação ⬍</th>
-<th onclick="ordenarTabela(11)">NCM ⬍</th>
+<th>Variação</th>
+<th>NCM</th>
 <th onclick="ordenarTabela(12)">Ano ⬍</th>
+<th>Ação</th>
+</tr>
+</thead>
 
 <th>Variação</th>
 <th>NCM</th>
@@ -202,55 +205,48 @@ tamanho.onchange=atualizarSKU;
 
 /* ================= CARREGAR PRODUTOS ================= */
 
-async function carregarProdutos(){
+lista.innerHTML += `
+<tr data-id="${p.id}">
 
-  const res = await fetch("/products",{
-    headers:{ Authorization:"Bearer "+token }
-  });
+<td>${p.codigo}</td>
 
-  const produtos = await res.json();
+<td contenteditable data-campo="nome">${p.nome||""}</td>
 
-  lista.innerHTML="";
+<td contenteditable data-campo="fornecedor">${p.fornecedor||""}</td>
 
-  produtos.forEach(p=>{
+<td contenteditable data-campo="sku">${p.sku||""}</td>
 
-    const skuFull =
-      [p.sku,p.cor,p.tamanho]
-      .filter(Boolean)
-      .join("-");
+<td contenteditable data-campo="cor">${p.cor||""}</td>
 
-    const variacao =
-      calcularVariacaoTabela(p.preco_custo,p.preco_venda);
+<td contenteditable data-campo="tamanho">${p.tamanho||""}</td>
 
-    lista.innerHTML += `
-    <tr data-id="${p.id}">
-      <td>${p.codigo}</td>
-      <td contenteditable data-campo="nome">${p.nome||""}</td>
-      <td contenteditable data-campo="fornecedor">${p.fornecedor||""}</td>
-      <td contenteditable data-campo="sku">${p.sku||""}</td>
-      <td contenteditable data-campo="cor">${p.cor||""}</td>
-      <td contenteditable data-campo="tamanho">${p.tamanho||""}</td>
-      <td class="skuFull">${skuFull}</td>
-      <td contenteditable data-campo="estoque">${p.estoque||0}</td>
+<td class="skuFull">
+${[p.sku,p.cor,p.tamanho].filter(Boolean).join("-")}
+</td>
 
-      <td contenteditable data-campo="preco_custo">
-        ${formatarMoeda(p.preco_custo)}
-      </td>
+<td contenteditable data-campo="estoque">${p.estoque||0}</td>
 
-      <td contenteditable data-campo="preco_venda">
-        ${formatarMoeda(p.preco_venda)}
-      </td>
+<td contenteditable data-campo="preco_custo">
+${formatarMoeda(p.preco_custo)}
+</td>
 
-      <td class="variacao">${variacao}</td>
+<td contenteditable data-campo="preco_venda">
+${formatarMoeda(p.preco_venda)}
+</td>
 
-      <td contenteditable data-campo="barcode">${p.barcode||""}</td>
-      <td>${p.ano||""}</td>
-      <td>
-        <button onclick="excluirProduto(${p.id})">🗑</button>
-      </td>
-    </tr>`;
-  });
-}
+<td class="variacao">
+${calcularVariacaoTabela(p.preco_custo,p.preco_venda)}
+</td>
+
+<td contenteditable data-campo="barcode">${p.barcode||""}</td>
+
+<td contenteditable data-campo="ano">${p.ano||""}</td>
+
+<td>
+<button onclick="excluirProduto(${p.id})">🗑</button>
+</td>
+
+</tr>`;
 
 /* ================= AUTO SAVE INLINE ================= */
 
