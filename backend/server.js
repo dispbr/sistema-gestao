@@ -263,7 +263,7 @@ app.delete("/products/:id", authenticateToken, async (req, res) => {
   await pool.query("DELETE FROM products WHERE id=$1", [id]);
   res.json({ success: true });
 });
-
+                                    
 /* ROOT */
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/login.html"));

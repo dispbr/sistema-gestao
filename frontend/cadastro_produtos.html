@@ -14,8 +14,10 @@
 <h2 class="title">📦 Cadastro de Produtos</h2>
 
 <div class="actions">
-<button class="btn green" onclick="abrirModal()">Gerenciar Fornecedores</button>
+  <button class="btn blue" onclick="voltarDashboard()">Voltar</button>
+  <button class="btn green" onclick="abrirModal()">Gerenciar Fornecedores</button>
 </div>
+
 
 <div class="form-grid">
 
@@ -313,6 +315,20 @@ window.onload=function(){
   carregarProdutos();
   gerarCodigoAutomatico();
 };
+
+/* ================= MODAL ================= */
+
+function abrirModal(){
+  document.getElementById("modalFornecedor").style.display = "flex";
+}
+
+function fecharModal(){
+  document.getElementById("modalFornecedor").style.display = "none";
+}
+
+function voltarDashboard(){
+  window.location.href = "dashboard.html";
+}
 
 </script>
 
