@@ -146,93 +146,145 @@
 <script>
 
 const token = localStorage.getItem("token");
-if(!token) window.location.href="login.html";
-
-/* ================= GERAR CÓDIGO AUTOMÁTICO ================= */
-
-async function gerarCodigoAutomatico(){
-  const res = await fetch("/products/next-code",{
-    headers:{ Authorization:"Bearer "+token }
-  });
-  const data = await res.json();
-  codigo.value = data.codigo;
+if(!token){
+  window.location.href = "login.html";
 }
+
+/* ================= MAIÚSCULO AUTOMÁTICO ================= */
+
+document.addEventListener("input", function(e){
+  if(e.target.tagName === "INPUT"){
+    if(e.target.id !== "custo" && e.target.id !== "venda"){
+      e.target.value = e.target.value.toUpperCase();
+    }
+  }
+});
+
+/* ================= SKU COMPLETO AUTOMÁTICO ================= */
+
+function atualizarSKU(){
+  const skuVal = sku.value || "";
+  const corVal = cor.value || "";
+  const tamanhoVal = tamanho.value || "";
+
+  skuCompleto.value = `${skuVal}-${corVal}-${tamanhoVal}`;
+}
+
+sku.addEventListener("input", atualizarSKU);
+cor.addEventListener("input", atualizarSKU);
+tamanho.addEventListener("change", atualizarSKU);
 
 /* ================= CARREGAR PRODUTOS ================= */
 
-async function carregarProdutos(q=""){
-  const res = await fetch("/products?q="+q,{
-    headers:{ Authorization:"Bearer "+token }
+async function carregarProdutos(){
+
+  const res = await fetch("/products",{
+    headers:{ Authorization:"Bearer " + token }
   });
 
   const produtos = await res.json();
-  lista.innerHTML="";
+
+  lista.innerHTML = "";
 
   produtos.forEach(p=>{
-    lista.innerHTML+=`
+    lista.innerHTML += `
     <tr data-id="${p.id}">
       <td>${p.codigo}</td>
-      <td contenteditable data-campo="nome">${p.nome}</td>
-      <td contenteditable data-campo="fornecedor">${p.fornecedor}</td>
-      <td contenteditable data-campo="sku">${p.sku}</td>
-      <td contenteditable data-campo="cor">${p.cor}</td>
-      <td contenteditable data-campo="tamanho">${p.tamanho}</td>
-      <td contenteditable data-campo="estoque">${p.estoque}</td>
-      <td contenteditable data-campo="preco_custo">${formatarMoeda(p.preco_custo)}</td>
-      <td contenteditable data-campo="preco_venda">${formatarMoeda(p.preco_venda)}</td>
+      <td contenteditable="true" data-campo="nome">${p.nome || ""}</td>
+      <td contenteditable="true" data-campo="fornecedor">${p.fornecedor || ""}</td>
+      <td contenteditable="true" data-campo="sku">${p.sku || ""}</td>
+      <td contenteditable="true" data-campo="cor">${p.cor || ""}</td>
+      <td contenteditable="true" data-campo="tamanho">${p.tamanho || ""}</td>
+      <td contenteditable="true" data-campo="estoque">${p.estoque || 0}</td>
+      <td contenteditable="true" data-campo="preco_custo">${p.preco_custo || 0}</td>
+      <td contenteditable="true" data-campo="preco_venda">${p.preco_venda || 0}</td>
       <td>${p.variacao || ""}</td>
-      <td contenteditable data-campo="barcode">${p.barcode}</td>
+      <td contenteditable="true" data-campo="barcode">${p.barcode || ""}</td>
       <td><button onclick="excluirProduto(${p.id})">🗑</button></td>
     </tr>`;
   });
 }
 
-function buscar(q){
-  carregarProdutos(q);
-}
-
-/* ================= SALVAR ================= */
+/* ================= SALVAR PRODUTO ================= */
 
 async function salvar(){
 
-  const dados={
-    codigo:codigo.value,
-    nome:nome.value,
-    fornecedor:fornecedor.value,
-    sku:sku.value,
-    cor:cor.value,
-    tamanho:tamanho.value,
-    estoque:estoque.value,
-    preco_custo:limparMoeda(custo.value),
-    preco_venda:limparMoeda(venda.value),
-    variacao:variacao.value,
-    barcode:barcode.value
+  const dados = {
+    codigo: codigo.value,
+    nome: nome.value,
+    fornecedor: fornecedor.value,
+    sku: sku.value,
+    cor: cor.value,
+    tamanho: tamanho.value,
+    estoque: estoque.value,
+    preco_custo: limparMoeda(custo.value),
+    preco_venda: limparMoeda(venda.value),
+    variacao: variacao.value,
+    barcode: barcode.value
   };
 
-  const res=await fetch("/products",{
+  const res = await fetch("/products",{
     method:"POST",
     headers:{
       "Content-Type":"application/json",
-      Authorization:"Bearer "+token
+      Authorization:"Bearer " + token
     },
-    body:JSON.stringify(dados)
+    body: JSON.stringify(dados)
   });
 
-  if(!res.ok) return alert("Erro ao salvar");
+  if(!res.ok){
+    alert("Erro ao salvar");
+    return;
+  }
 
+  alert("Produto salvo com sucesso!");
   limparFormulario();
-  gerarCodigoAutomatico();
   carregarProdutos();
+  gerarCodigoAutomatico();
 }
+
+/* ================= INLINE UPDATE ================= */
+
+document.addEventListener("blur", async function(e){
+
+  if(!e.target.hasAttribute("contenteditable")) return;
+
+  const campo = e.target.dataset.campo;
+  const row = e.target.closest("tr");
+  const id = row.dataset.id;
+  let valor = e.target.innerText;
+
+  if(campo === "estoque"){
+    valor = parseInt(valor) || 0;
+  }
+
+  if(campo === "preco_custo" || campo === "preco_venda"){
+    valor = parseFloat(valor) || 0;
+  }
+
+  await fetch("/products/" + id + "/campo",{
+    method:"PUT",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer " + token
+    },
+    body: JSON.stringify({ campo, valor })
+  });
+
+  e.target.style.background = "#dcfce7";
+  setTimeout(()=> e.target.style.background="",500);
+
+}, true);
 
 /* ================= DELETE ================= */
 
 async function excluirProduto(id){
-  if(!confirm("Excluir produto?")) return;
 
-  await fetch("/products/"+id,{
+  if(!confirm("Deseja excluir este produto?")) return;
+
+  await fetch("/products/" + id,{
     method:"DELETE",
-    headers:{Authorization:"Bearer "+token}
+    headers:{ Authorization:"Bearer " + token }
   });
 
   carregarProdutos();
@@ -240,42 +292,38 @@ async function excluirProduto(id){
 
 /* ================= FORNECEDORES ================= */
 
-function abrirModal(){
-  modalFornecedor.style.display="flex";
-  carregarFornecedores();
-}
-
-function fecharModal(){
-  modalFornecedor.style.display="none";
-}
-
 async function carregarFornecedores(){
-  const res=await fetch("/suppliers",{headers:{Authorization:"Bearer "+token}});
-  const dados=await res.json();
 
-  fornecedor.innerHTML="<option value=''>Selecione</option>";
-  listaFornecedores.innerHTML="";
+  const res = await fetch("/suppliers",{
+    headers:{ Authorization:"Bearer " + token }
+  });
 
-  dados.forEach(f=>{
-    fornecedor.innerHTML+=`<option>${f.nome}</option>`;
-    listaFornecedores.innerHTML+=`
-    <tr>
-      <td>${f.nome}</td>
-      <td><button onclick="excluirFornecedor(${f.id})">🗑</button></td>
-    </tr>`;
+  const fornecedores = await res.json();
+
+  fornecedor.innerHTML = "<option value=''>Selecione</option>";
+  listaFornecedores.innerHTML = "";
+
+  fornecedores.forEach(f=>{
+    fornecedor.innerHTML += `<option>${f.nome}</option>`;
+    listaFornecedores.innerHTML += `
+      <tr>
+        <td>${f.nome}</td>
+        <td><button onclick="excluirFornecedor(${f.id})">🗑</button></td>
+      </tr>`;
   });
 }
 
 async function adicionarFornecedor(){
+
   if(!novoFornecedor.value) return;
 
   await fetch("/suppliers",{
     method:"POST",
     headers:{
       "Content-Type":"application/json",
-      Authorization:"Bearer "+token
+      Authorization:"Bearer " + token
     },
-    body:JSON.stringify({nome:novoFornecedor.value})
+    body: JSON.stringify({nome:novoFornecedor.value})
   });
 
   novoFornecedor.value="";
@@ -283,91 +331,80 @@ async function adicionarFornecedor(){
 }
 
 async function excluirFornecedor(id){
-  await fetch("/suppliers/"+id,{
+
+  await fetch("/suppliers/" + id,{
     method:"DELETE",
-    headers:{Authorization:"Bearer "+token}
+    headers:{ Authorization:"Bearer " + token }
   });
+
   carregarFornecedores();
+}
+
+/* ================= CÓDIGO AUTOMÁTICO ================= */
+
+async function gerarCodigoAutomatico(){
+
+  const res = await fetch("/products/next-code",{
+    headers:{ Authorization:"Bearer " + token }
+  });
+
+  const data = await res.json();
+  codigo.value = data.codigo;
 }
 
 /* ================= MÁSCARA R$ ================= */
 
-function formatarMoeda(valor){
-  return Number(valor||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
-}
-
 function limparMoeda(valor){
-  return parseFloat(valor.replace(/[^\d]/g,''))/100||0;
+  return parseFloat(valor.replace(/[^\d]/g,'')) / 100 || 0;
 }
 
-custo.addEventListener("input",()=>{
-  formatarInput(custo);
-  calcularVariacao();
-});
+function formatarMoedaInput(input){
 
-venda.addEventListener("input",()=>{
-  formatarInput(venda);
-  calcularVariacao();
-});
+  let valor = input.value.replace(/\D/g,'');
 
-function formatarInput(input){
-  let valor=input.value.replace(/\D/g,'');
-  if(!valor) return input.value="";
-  valor=(valor/100).toFixed(2)+'';
-  valor=valor.replace(".",",");
-  valor=valor.replace(/\B(?=(\d{3})+(?!\d))/g,".");
-  input.value="R$ "+valor;
+  if(!valor){
+    input.value="";
+    return;
+  }
+
+  valor = (valor/100).toFixed(2)+'';
+  valor = valor.replace(".", ",");
+  valor = valor.replace(/\B(?=(\d{3})+(?!\d))/g,".");
+
+  input.value = "R$ " + valor;
 }
 
 function calcularVariacao(){
-  const c=limparMoeda(custo.value);
-  const v=limparMoeda(venda.value);
-  if(!c||!v) return variacao.value="";
-  variacao.value=((v-c)/c*100).toFixed(2)+"%";
+
+  const custoNumero = limparMoeda(custo.value);
+  const vendaNumero = limparMoeda(venda.value);
+
+  if(!custoNumero || !vendaNumero){
+    variacao.value="";
+    return;
+  }
+
+  const resultado = ((vendaNumero - custoNumero) / custoNumero) * 100;
+  variacao.value = resultado.toFixed(2) + "%";
 }
 
-/* ================= INLINE SAVE ================= */
+custo.addEventListener("input", function(){
+  formatarMoedaInput(this);
+  calcularVariacao();
+});
 
-document.addEventListener("blur",async e=>{
-  if(!e.target.hasAttribute("contenteditable")) return;
+venda.addEventListener("input", function(){
+  formatarMoedaInput(this);
+  calcularVariacao();
+});
 
-  const campo=e.target.dataset.campo;
-  const row=e.target.closest("tr");
-  const id=row.dataset.id;
-  let valor=e.target.innerText;
-
-  if(campo==="preco_custo"||campo==="preco_venda"){
-    valor=limparMoeda(valor);
-  }
-
-  await fetch("/products/"+id+"/campo",{
-    method:"PUT",
-    headers:{
-      "Content-Type":"application/json",
-      Authorization:"Bearer "+token
-    },
-    body:JSON.stringify({campo,valor})
-  });
-
-  if(campo==="preco_custo"||campo==="preco_venda"){
-    const custo=limparMoeda(row.children[7].innerText);
-    const venda=limparMoeda(row.children[8].innerText);
-    if(custo){
-      row.children[9].innerText=((venda-custo)/custo*100).toFixed(2)+"%";
-    }
-  }
-
-  e.target.style.background="#dcfce7";
-  setTimeout(()=>e.target.style.background="",500);
-
-},true);
-
-/* ================= OUTROS ================= */
+/* ================= LIMPAR ================= */
 
 function limparFormulario(){
   nome.value="";
   sku.value="";
   cor.value="";
+  tamanho.value="";
   estoque.value="";
   custo.value="";
   venda.value="";
@@ -375,16 +412,15 @@ function limparFormulario(){
   barcode.value="";
 }
 
-function gerarCodigo(){
-  barcode.value=Math.floor(Math.random()*999999999999);
-}
+/* ================= INIT ================= */
 
-window.onload=()=>{
+window.onload = function(){
   carregarProdutos();
   carregarFornecedores();
   gerarCodigoAutomatico();
 };
 
 </script>
+
 </body>
 </html>
