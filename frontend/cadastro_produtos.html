@@ -104,10 +104,6 @@
 
 <input class="search" placeholder="Buscar..." onkeyup="buscar(this.value)">
 
-<button class="btn-submit" onclick="salvar()">Adicionar Produto</button>
-
-<input class="search" placeholder="Buscar..." onkeyup="buscar(this.value)">
-
 <!-- 🔥 FILTRO POR COLUNA (COLOCAR AQUI) -->
 <div style="display:flex; gap:10px; margin-bottom:10px;">
   <select id="colunaBusca" class="search" style="max-width:220px;">
@@ -127,10 +123,14 @@
 <th onclick="ordenarTabela(3)">SKU ⬍</th>
 <th onclick="ordenarTabela(4)">Cor ⬍</th>
 <th onclick="ordenarTabela(5)">Tamanho ⬍</th>
-<th>SKU Completo</th>
+<th onclick="ordenarTabela(6)">SKU Completo ⬍</th>
 <th onclick="ordenarTabela(7)">Estoque ⬍</th>
 <th onclick="ordenarTabela(8)">Custo ⬍</th>
 <th onclick="ordenarTabela(9)">Venda ⬍</th>
+<th onclick="ordenarTabela(10)">Variação ⬍</th>
+<th onclick="ordenarTabela(11)">NCM ⬍</th>
+<th onclick="ordenarTabela(12)">Ano ⬍</th>
+
 <th>Variação</th>
 <th>NCM</th>
 <th>Ação</th>
@@ -360,6 +360,8 @@ function formatarMoedaInput(input){
 
  input.value="R$ "+valor;
 }
+const custo = document.getElementById("custo");
+const venda = document.getElementById("venda");
 
 custo.addEventListener("input", ()=>{
  formatarMoedaInput(custo);
@@ -506,6 +508,57 @@ function abrirModal(){
 
 function fecharModal(){
  document.getElementById("modalFornecedor").style.display="none";
+}
+
+
+function buscar(valor){
+
+  const termo = valor.toUpperCase();
+  const coluna = document.getElementById("colunaBusca").value;
+
+  document.querySelectorAll("#lista tr").forEach(row=>{
+
+    const codigo = row.children[0].innerText.toUpperCase();
+    const nome = row.children[1].innerText.toUpperCase();
+    const fornecedor = row.children[2].innerText.toUpperCase();
+
+    let texto = "";
+
+    if(coluna==="codigo") texto = codigo;
+    else if(coluna==="nome") texto = nome;
+    else if(coluna==="fornecedor") texto = fornecedor;
+    else texto = row.innerText.toUpperCase();
+
+    row.style.display =
+      texto.includes(termo) ? "" : "none";
+  });
+}
+function importarExcel(){
+  document.getElementById("excelFile").click();
+}
+
+async function lerExcel(event){
+
+  const file = event.target.files[0];
+  if(!file) return;
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch("/products/import-excel",{
+    method:"POST",
+    headers:{
+      Authorization:"Bearer "+token
+    },
+    body: formData
+  });
+
+  if(res.ok){
+    alert("Importado com sucesso!");
+    carregarProdutos();
+  }else{
+    alert("Erro ao importar");
+  }
 }
 
 /* ================= INIT ================= */
