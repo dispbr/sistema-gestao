@@ -16,6 +16,16 @@
 <div class="actions">
   <button class="btn blue" onclick="voltarDashboard()">Voltar</button>
   <button class="btn green" onclick="abrirModal()">Gerenciar Fornecedores</button>
+
+  <!-- 🔥 NOVO BOTÃO -->
+  <button class="btn purple" onclick="importarExcel()">
+    Importar Excel
+  </button>
+
+  <!-- input escondido -->
+  <input type="file" id="excelFile" accept=".xlsx,.xls"
+         style="display:none"
+         onchange="lerExcel(event)">
 </div>
 
 <div class="form-grid">
@@ -94,6 +104,20 @@
 
 <input class="search" placeholder="Buscar..." onkeyup="buscar(this.value)">
 
+<button class="btn-submit" onclick="salvar()">Adicionar Produto</button>
+
+<input class="search" placeholder="Buscar..." onkeyup="buscar(this.value)">
+
+<!-- 🔥 FILTRO POR COLUNA (COLOCAR AQUI) -->
+<div style="display:flex; gap:10px; margin-bottom:10px;">
+  <select id="colunaBusca" class="search" style="max-width:220px;">
+    <option value="todas">Todas as colunas</option>
+    <option value="codigo">Código</option>
+    <option value="nome">Nome</option>
+    <option value="fornecedor">Fornecedor</option>
+  </select>
+</div>
+
 <table class="tabela">
 <thead>
 <tr>
@@ -165,11 +189,12 @@ document.addEventListener("input", e=>{
 
 });
 
-
 /* ================= SKU COMPLETO ================= */
 function atualizarSKU(){
  skuCompleto.value =
- `${sku.value}-${cor.value}-${tamanho.value}`;
+ [sku.value,cor.value,tamanho.value]
+ .filter(Boolean)
+ .join("-");
 }
 sku.oninput=atualizarSKU;
 cor.oninput=atualizarSKU;
@@ -180,9 +205,7 @@ tamanho.onchange=atualizarSKU;
 async function carregarProdutos(){
 
   const res = await fetch("/products",{
-    headers:{
-      Authorization:"Bearer "+token
-    }
+    headers:{ Authorization:"Bearer "+token }
   });
 
   const produtos = await res.json();
@@ -191,37 +214,25 @@ async function carregarProdutos(){
 
   produtos.forEach(p=>{
 
-    /* ===== SKU COMPLETO AUTOMÁTICO ===== */
-    const skuCompleto =
-      `${p.sku || ""}-${p.cor || ""}-${p.tamanho || ""}`;
+    const skuFull =
+      [p.sku,p.cor,p.tamanho]
+      .filter(Boolean)
+      .join("-");
 
-    /* ===== VARIAÇÃO AUTOMÁTICA ===== */
-    const variacao = calcularVariacaoTabela(
-      p.preco_custo,
-      p.preco_venda
-    );
+    const variacao =
+      calcularVariacaoTabela(p.preco_custo,p.preco_venda);
 
     lista.innerHTML += `
     <tr data-id="${p.id}">
-
       <td>${p.codigo}</td>
-
       <td contenteditable data-campo="nome">${p.nome||""}</td>
-
       <td contenteditable data-campo="fornecedor">${p.fornecedor||""}</td>
-
       <td contenteditable data-campo="sku">${p.sku||""}</td>
-
       <td contenteditable data-campo="cor">${p.cor||""}</td>
-
       <td contenteditable data-campo="tamanho">${p.tamanho||""}</td>
-
-      <!-- SKU COMPLETO AGORA FUNCIONA -->
-      <td class="skuFull">${skuCompleto}</td>
-
+      <td class="skuFull">${skuFull}</td>
       <td contenteditable data-campo="estoque">${p.estoque||0}</td>
 
-      <!-- MÁSCARA R$ -->
       <td contenteditable data-campo="preco_custo">
         ${formatarMoeda(p.preco_custo)}
       </td>
@@ -230,7 +241,6 @@ async function carregarProdutos(){
         ${formatarMoeda(p.preco_venda)}
       </td>
 
-      <!-- VARIAÇÃO FUNCIONANDO -->
       <td class="variacao">${variacao}</td>
 
       <td contenteditable data-campo="barcode">${p.barcode||""}</td>
@@ -238,12 +248,9 @@ async function carregarProdutos(){
       <td>
         <button onclick="excluirProduto(${p.id})">🗑</button>
       </td>
-
     </tr>`;
   });
-
 }
-
 
 /* ================= AUTO SAVE INLINE ================= */
 
@@ -255,11 +262,9 @@ document.addEventListener("input", e=>{
 
  clearTimeout(timeoutSave);
 
- timeoutSave = setTimeout(()=>{
-
+ timeoutSave=setTimeout(()=>{
    salvarInline(e.target);
-
- }, 600); // salva 600ms após parar de digitar
+ },600);
 
 });
 
@@ -298,7 +303,7 @@ async function salvarInline(el){
  recalcularLinha(row);
 }
 
-/* ================= RECALCULAR VARIAÇÃO ================= */
+/* ================= VARIAÇÃO ================= */
 
 function recalcularLinha(row){
 
@@ -310,36 +315,21 @@ function recalcularLinha(row){
    row.querySelector('[data-campo="preco_venda"]').innerText
  );
 
- const variacaoCell = row.querySelector(".variacao");
-
- variacaoCell.innerText =
+ row.querySelector(".variacao").innerText =
    calcularVariacaoTabela(custo,venda);
+
+ row.querySelector(".skuFull").innerText =
+   [
+    row.querySelector('[data-campo="sku"]').innerText,
+    row.querySelector('[data-campo="cor"]').innerText,
+    row.querySelector('[data-campo="tamanho"]').innerText
+   ].filter(Boolean).join("-");
 }
 
 function calcularVariacaoTabela(c,v){
  if(!c || c===0) return "0%";
  return (((v-c)/c)*100).toFixed(2)+"%";
 }
-
-function calcularVariacao(){
-
-  const custoNumero = limparMoeda(custo.value);
-  const vendaNumero = limparMoeda(venda.value);
-
-  if(!custoNumero || !vendaNumero){
-    variacao.value = "";
-    return;
-  }
-
-  const resultado =
-    ((vendaNumero - custoNumero) / custoNumero) * 100;
-
-  variacao.value = resultado.toFixed(2) + "%";
-}
-
-const custo = document.getElementById("custo");
-const venda = document.getElementById("venda");
-
 
 /* ================= MOEDA ================= */
 
@@ -355,20 +345,47 @@ function formatarMoeda(v){
  });
 }
 
-/* ===== EVENTOS MÁSCARA R$ ===== */
+function formatarMoedaInput(input){
 
-custo.addEventListener("input", () => {
-  formatarMoedaInput(custo);
-  calcularVariacao();
+ let valor=input.value.replace(/\D/g,'');
+
+ if(!valor){
+   input.value="";
+   return;
+ }
+
+ valor=(valor/100).toFixed(2);
+ valor=valor.replace(".",",");
+ valor=valor.replace(/\B(?=(\d{3})+(?!\d))/g,".");
+
+ input.value="R$ "+valor;
+}
+
+custo.addEventListener("input", ()=>{
+ formatarMoedaInput(custo);
+ calcularVariacao();
 });
 
-venda.addEventListener("input", () => {
-  formatarMoedaInput(venda);
-  calcularVariacao();
+venda.addEventListener("input", ()=>{
+ formatarMoedaInput(venda);
+ calcularVariacao();
 });
 
+function calcularVariacao(){
 
-/* ================= SALVAR PRODUTO ================= */
+ const c=limparMoeda(custo.value);
+ const v=limparMoeda(venda.value);
+
+ if(!c || !v){
+   variacao.value="";
+   return;
+ }
+
+ variacao.value =
+   (((v-c)/c)*100).toFixed(2)+"%";
+}
+
+/* ================= CRUD ================= */
 
 async function salvar(){
 
@@ -379,7 +396,6 @@ async function salvar(){
   sku:sku.value,
   cor:cor.value,
   tamanho:tamanho.value,
-  sku_completo:skuCompleto.value,
   estoque:estoque.value,
   preco_custo:limparMoeda(custo.value),
   preco_venda:limparMoeda(venda.value),
@@ -400,8 +416,6 @@ async function salvar(){
  carregarProdutos();
  gerarCodigoAutomatico();
 }
-
-/* ================= DELETE ================= */
 
 async function excluirProduto(id){
  await fetch("/products/"+id,{
@@ -433,247 +447,74 @@ async function gerarCodigoAutomatico(){
  const data=await res.json();
  codigo.value=data.codigo;
 }
+
 /* ================= FORNECEDORES ================= */
 
 async function carregarFornecedores(){
 
-  const res = await fetch("/suppliers",{
-    headers:{
-      Authorization:"Bearer " + token
-    }
-  });
+ const res=await fetch("/suppliers",{
+  headers:{Authorization:"Bearer "+token}
+ });
 
-  const fornecedores = await res.json();
+ const fornecedores=await res.json();
 
-  const select = document.getElementById("fornecedor");
-  const lista = document.getElementById("listaFornecedores");
+ fornecedor.innerHTML="<option value=''>Selecione</option>";
+ listaFornecedores.innerHTML="";
 
-  select.innerHTML = "<option value=''>Selecione</option>";
-  lista.innerHTML = "";
-
-  fornecedores.forEach(f=>{
-
-    /* COMBOBOX */
-    select.innerHTML += `
-      <option value="${f.nome}">
-        ${f.nome}
-      </option>`;
-
-    /* TABELA MODAL */
-    lista.innerHTML += `
-      <tr>
-        <td>${f.nome}</td>
-        <td>
-          <button onclick="excluirFornecedor(${f.id})">
-            🗑
-          </button>
-        </td>
-      </tr>`;
-  });
+ fornecedores.forEach(f=>{
+  fornecedor.innerHTML += `<option>${f.nome}</option>`;
+  listaFornecedores.innerHTML += `
+   <tr>
+    <td>${f.nome}</td>
+    <td><button onclick="excluirFornecedor(${f.id})">🗑</button></td>
+   </tr>`;
+ });
 }
-
-/* ========= ADICIONAR FORNECEDOR ========= */
 
 async function adicionarFornecedor(){
 
-  const nome = document.getElementById("novoFornecedor").value.trim();
+ if(!novoFornecedor.value) return;
 
-  if(!nome) return;
+ await fetch("/suppliers",{
+  method:"POST",
+  headers:{
+   "Content-Type":"application/json",
+   Authorization:"Bearer "+token
+  },
+  body:JSON.stringify({nome:novoFornecedor.value})
+ });
 
-  await fetch("/suppliers",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      Authorization:"Bearer " + token
-    },
-    body: JSON.stringify({ nome })
-  });
-
-  document.getElementById("novoFornecedor").value = "";
-
-  carregarFornecedores();
+ novoFornecedor.value="";
+ carregarFornecedores();
 }
-
-/* ========= EXCLUIR FORNECEDOR ========= */
 
 async function excluirFornecedor(id){
 
-  await fetch("/suppliers/" + id,{
-    method:"DELETE",
-    headers:{
-      Authorization:"Bearer " + token
-    }
-  });
+ await fetch("/suppliers/"+id,{
+  method:"DELETE",
+  headers:{Authorization:"Bearer "+token}
+ });
 
-  carregarFornecedores();
+ carregarFornecedores();
 }
 
-/* ========= MODAL ========= */
+/* ================= MODAL ================= */
 
 function abrirModal(){
-  document.getElementById("modalFornecedor").style.display = "flex";
+ document.getElementById("modalFornecedor").style.display="flex";
 }
 
 function fecharModal(){
-  document.getElementById("modalFornecedor").style.display = "none";
-}
-
-
-function formatarMoedaInput(input){
-
-  let valor = input.value.replace(/\D/g,'');
-
-  if(!valor){
-    input.value = "";
-    return;
-  }
-
-  valor = (valor/100).toFixed(2);
-  valor = valor.replace(".", ",");
-  valor = valor.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-
-  input.value = "R$ " + valor;
-}
-
-/* ================= BUSCA PRO (ERP LEVEL) ================= */
-
-function normalizarTexto(txt){
-  return txt
-    .toUpperCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, ""); // remove acentos
-}
-
-function removerHighlight(linha){
-  linha.querySelectorAll("mark").forEach(m=>{
-    m.outerHTML = m.innerText;
-  });
-}
-
-function destacarTexto(linha, termo){
-
-  if(!termo) return;
-
-  linha.querySelectorAll("td").forEach(td=>{
-
-    const textoOriginal = td.innerText;
-
-    const textoNormal = normalizarTexto(textoOriginal);
-    const termoNormal = normalizarTexto(termo);
-
-    const index = textoNormal.indexOf(termoNormal);
-
-    if(index >= 0){
-
-      const antes = textoOriginal.substring(0,index);
-      const meio = textoOriginal.substring(index,index+termo.length);
-      const depois = textoOriginal.substring(index+termo.length);
-
-      td.innerHTML = `${antes}<mark style="background:#fde047;padding:0 2px;border-radius:4px;">${meio}</mark>${depois}`;
-    }
-
-  });
-
-}
-
-function buscar(valor){
-
-  const termo = valor.toUpperCase();
-  const coluna = document.getElementById("colunaBusca").value;
-
-  const linhas = document.querySelectorAll("#lista tr");
-
-  linhas.forEach(linha=>{
-
-    const tds = linha.querySelectorAll("td");
-
-    const codigo = tds[0]?.innerText.toUpperCase() || "";
-    const nome = tds[1]?.innerText.toUpperCase() || "";
-    const fornecedor = tds[2]?.innerText.toUpperCase() || "";
-
-    let textoBusca = "";
-
-    if(coluna==="codigo") textoBusca = codigo;
-    else if(coluna==="nome") textoBusca = nome;
-    else if(coluna==="fornecedor") textoBusca = fornecedor;
-    else textoBusca = linha.innerText.toUpperCase();
-
-    linha.style.display =
-      textoBusca.includes(termo) ? "" : "none";
-
-  });
-
-}
-
-function buscar(valor){
-
-  const termo = valor.toUpperCase();
-  const coluna = document.getElementById("colunaBusca").value;
-
-  const linhas = document.querySelectorAll("#lista tr");
-
-  linhas.forEach(linha=>{
-
-    const tds = linha.querySelectorAll("td");
-
-    const codigo = tds[0]?.innerText.toUpperCase() || "";
-    const nome = tds[1]?.innerText.toUpperCase() || "";
-    const fornecedor = tds[2]?.innerText.toUpperCase() || "";
-
-    let textoBusca = "";
-
-    if(coluna==="codigo") textoBusca = codigo;
-    else if(coluna==="nome") textoBusca = nome;
-    else if(coluna==="fornecedor") textoBusca = fornecedor;
-    else textoBusca = linha.innerText.toUpperCase();
-
-    linha.style.display =
-      textoBusca.includes(termo) ? "" : "none";
-
-  });
-
-}
-
-let ordemAsc = true;
-
-function ordenarTabela(coluna){
-
-  const tbody = document.getElementById("lista");
-  const linhas = Array.from(tbody.querySelectorAll("tr"));
-
-  linhas.sort((a,b)=>{
-
-    const A = a.children[coluna].innerText.trim().toUpperCase();
-    const B = b.children[coluna].innerText.trim().toUpperCase();
-
-    if(!isNaN(A) && !isNaN(B)){
-      return ordemAsc
-        ? Number(A)-Number(B)
-        : Number(B)-Number(A);
-    }
-
-    return ordemAsc
-      ? A.localeCompare(B)
-      : B.localeCompare(A);
-
-  });
-
-  ordemAsc = !ordemAsc;
-
-  tbody.innerHTML = "";
-  linhas.forEach(l=>tbody.appendChild(l));
+ document.getElementById("modalFornecedor").style.display="none";
 }
 
 /* ================= INIT ================= */
 
 window.onload=()=>{
- variacao.setAttribute("readonly", true);
  carregarProdutos();
  carregarFornecedores();
  gerarCodigoAutomatico();
 };
-
-
 
 </script>
 
