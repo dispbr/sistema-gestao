@@ -147,154 +147,312 @@
 <script>
 
 const token = localStorage.getItem("token");
-if(!token) window.location.href="login.html";
+if(!token) location.href="login.html";
 
 /* ================= MAIÚSCULO ================= */
-document.addEventListener("input", function(e){
-  if(e.target.tagName==="INPUT"||e.target.tagName==="SELECT"){
-    if(!["custo","venda","variacao"].includes(e.target.id)){
-      e.target.value=e.target.value.toUpperCase();
-    }
-  }
+document.addEventListener("input", e=>{
+ if(e.target.matches("input, [contenteditable]")){
+   if(!["custo","venda"].includes(e.target.id)){
+     if(e.target.value)
+       e.target.value = e.target.value.toUpperCase();
+   }
+ }
 });
 
 /* ================= SKU COMPLETO ================= */
-const skuInput=document.getElementById("sku");
-const corInput=document.getElementById("cor");
-const tamanhoInput=document.getElementById("tamanho");
-const skuCompletoInput=document.getElementById("skuCompleto");
-
 function atualizarSKU(){
-  skuCompletoInput.value=`${skuInput.value}-${corInput.value}-${tamanhoInput.value}`;
+ skuCompleto.value =
+ `${sku.value}-${cor.value}-${tamanho.value}`;
 }
-skuInput.addEventListener("keyup",atualizarSKU);
-corInput.addEventListener("keyup",atualizarSKU);
-tamanhoInput.addEventListener("change",atualizarSKU);
+sku.oninput=atualizarSKU;
+cor.oninput=atualizarSKU;
+tamanho.onchange=atualizarSKU;
 
 /* ================= CARREGAR PRODUTOS ================= */
+
 async function carregarProdutos(){
-  const res=await fetch("/products",{headers:{Authorization:"Bearer "+token}});
-  const produtos=await res.json();
-  lista.innerHTML="";
-  produtos.forEach(p=>{
-    lista.innerHTML+=`
-<tr data-id="${p.id}">
-<td>${p.codigo}</td>
-<td contenteditable data-campo="nome">${p.nome||""}</td>
-<td contenteditable data-campo="fornecedor">${p.fornecedor||""}</td>
-<td contenteditable data-campo="sku">${p.sku||""}</td>
-<td contenteditable data-campo="cor">${p.cor||""}</td>
-<td contenteditable data-campo="tamanho">${p.tamanho||""}</td>
-<td>${p.sku_completo||""}</td>
-<td contenteditable data-campo="estoque">${p.estoque||0}</td>
-<td contenteditable data-campo="preco_custo">${p.preco_custo||0}</td>
-<td contenteditable data-campo="preco_venda">${p.preco_venda||0}</td>
-<td>${p.variacao||""}</td>
-<td contenteditable data-campo="barcode">${p.barcode||""}</td>
-<td><button onclick="excluirProduto(${p.id})">🗑</button></td>
-</tr>`;
-  });
+
+ const res = await fetch("/products",{
+  headers:{Authorization:"Bearer "+token}
+ });
+
+ const produtos = await res.json();
+
+ lista.innerHTML="";
+
+ produtos.forEach(p=>{
+
+  const variacao = calcularVariacaoTabela(
+    p.preco_custo,
+    p.preco_venda
+  );
+
+  lista.innerHTML += `
+  <tr data-id="${p.id}">
+    <td>${p.codigo}</td>
+    <td contenteditable data-campo="nome">${p.nome||""}</td>
+    <td contenteditable data-campo="fornecedor">${p.fornecedor||""}</td>
+    <td contenteditable data-campo="sku">${p.sku||""}</td>
+    <td contenteditable data-campo="cor">${p.cor||""}</td>
+    <td contenteditable data-campo="tamanho">${p.tamanho||""}</td>
+    <td>${p.sku_completo||""}</td>
+    <td contenteditable data-campo="estoque">${p.estoque||0}</td>
+    <td contenteditable data-campo="preco_custo">${formatarMoeda(p.preco_custo)}</td>
+    <td contenteditable data-campo="preco_venda">${formatarMoeda(p.preco_venda)}</td>
+    <td class="variacao">${variacao}</td>
+    <td contenteditable data-campo="barcode">${p.barcode||""}</td>
+    <td><button onclick="excluirProduto(${p.id})">🗑</button></td>
+  </tr>`;
+ });
 }
 
-/* ================= SALVAR ================= */
+/* ================= AUTO SAVE INLINE ================= */
+
+let timeoutSave;
+
+document.addEventListener("input", e=>{
+
+ if(!e.target.hasAttribute("contenteditable")) return;
+
+ clearTimeout(timeoutSave);
+
+ timeoutSave = setTimeout(()=>{
+
+   salvarInline(e.target);
+
+ }, 600); // salva 600ms após parar de digitar
+
+});
+
+async function salvarInline(el){
+
+ const row = el.closest("tr");
+ const id = row.dataset.id;
+ const campo = el.dataset.campo;
+
+ let valor = el.innerText.trim();
+
+ if(campo==="preco_custo" || campo==="preco_venda"){
+   valor = limparMoeda(valor);
+ }
+
+ if(campo==="estoque"){
+   valor = parseInt(valor)||0;
+ }
+
+ await fetch(`/products/${id}/campo`,{
+   method:"PUT",
+   headers:{
+     "Content-Type":"application/json",
+     Authorization:"Bearer "+token
+   },
+   body:JSON.stringify({campo,valor})
+ });
+
+ /* ===== feedback verde ===== */
+ el.style.background="#bbf7d0";
+
+ setTimeout(()=>{
+   el.style.background="";
+ },500);
+
+ /* ===== recalcular variação ===== */
+ recalcularLinha(row);
+}
+
+/* ================= RECALCULAR VARIAÇÃO ================= */
+
+function recalcularLinha(row){
+
+ const custo = limparMoeda(
+   row.querySelector('[data-campo="preco_custo"]').innerText
+ );
+
+ const venda = limparMoeda(
+   row.querySelector('[data-campo="preco_venda"]').innerText
+ );
+
+ const variacaoCell = row.querySelector(".variacao");
+
+ variacaoCell.innerText =
+   calcularVariacaoTabela(custo,venda);
+}
+
+function calcularVariacaoTabela(c,v){
+ if(!c || c===0) return "0%";
+ return (((v-c)/c)*100).toFixed(2)+"%";
+}
+
+/* ================= MOEDA ================= */
+
+function limparMoeda(v){
+ if(typeof v==="number") return v;
+ return parseFloat(String(v).replace(/[^\d]/g,''))/100 || 0;
+}
+
+function formatarMoeda(v){
+ return Number(v||0).toLocaleString("pt-BR",{
+  style:"currency",
+  currency:"BRL"
+ });
+}
+
+/* ================= SALVAR PRODUTO ================= */
+
 async function salvar(){
-  const dados={
-    codigo:codigo.value,
-    nome:nome.value,
-    fornecedor:fornecedor.value,
-    sku:sku.value,
-    cor:cor.value,
-    tamanho:tamanho.value,
-    sku_completo:skuCompleto.value,
-    estoque:estoque.value,
-    preco_custo:limparMoeda(custo.value),
-    preco_venda:limparMoeda(venda.value),
-    variacao:variacao.value,
-    barcode:barcode.value
-  };
 
-  const res=await fetch("/products",{
-    method:"POST",
-    headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
-    body:JSON.stringify(dados)
-  });
+ const dados={
+  codigo:codigo.value,
+  nome:nome.value,
+  fornecedor:fornecedor.value,
+  sku:sku.value,
+  cor:cor.value,
+  tamanho:tamanho.value,
+  sku_completo:skuCompleto.value,
+  estoque:estoque.value,
+  preco_custo:limparMoeda(custo.value),
+  preco_venda:limparMoeda(venda.value),
+  variacao:variacao.value,
+  barcode:barcode.value
+ };
 
-  if(!res.ok){alert("Erro ao salvar");return;}
+ await fetch("/products",{
+  method:"POST",
+  headers:{
+   "Content-Type":"application/json",
+   Authorization:"Bearer "+token
+  },
+  body:JSON.stringify(dados)
+ });
 
-  limparFormulario();
-  carregarProdutos();
-  gerarCodigoAutomatico();
+ limparFormulario();
+ carregarProdutos();
+ gerarCodigoAutomatico();
 }
 
 /* ================= DELETE ================= */
+
 async function excluirProduto(id){
-  if(!confirm("Deseja excluir?"))return;
-  await fetch("/products/"+id,{method:"DELETE",headers:{Authorization:"Bearer "+token}});
-  carregarProdutos();
+ await fetch("/products/"+id,{
+  method:"DELETE",
+  headers:{Authorization:"Bearer "+token}
+ });
+ carregarProdutos();
 }
 
-/* ================= VARIAÇÃO ================= */
-function limparMoeda(v){return parseFloat(v.replace(/[^\d]/g,''))/100||0;}
-function formatarMoedaInput(input){
-  let v=input.value.replace(/\D/g,'');
-  if(!v){input.value="";return;}
-  v=(v/100).toFixed(2)+'';
-  v=v.replace(".",",");
-  v=v.replace(/\B(?=(\d{3})+(?!\d))/g,".");
-  input.value="R$ "+v;
-}
-function calcularVariacao(){
-  const c=limparMoeda(custo.value);
-  const v=limparMoeda(venda.value);
-  if(!c||!v){variacao.value="";return;}
-  variacao.value=(((v-c)/c)*100).toFixed(2)+"%";
-}
-custo.addEventListener("input",function(){formatarMoedaInput(this);calcularVariacao();});
-venda.addEventListener("input",function(){formatarMoedaInput(this);calcularVariacao();});
+/* ================= UTIL ================= */
 
-/* ================= CÓDIGO AUTOMÁTICO ================= */
+function limparFormulario(){
+ nome.value="";
+ sku.value="";
+ cor.value="";
+ tamanho.value="";
+ skuCompleto.value="";
+ estoque.value="";
+ custo.value="";
+ venda.value="";
+ variacao.value="";
+ barcode.value="";
+}
+
 async function gerarCodigoAutomatico(){
-  const res=await fetch("/products/next-code",{headers:{Authorization:"Bearer "+token}});
-  const data=await res.json();
-  codigo.value=data.codigo;
+ const res=await fetch("/products/next-code",{
+  headers:{Authorization:"Bearer "+token}
+ });
+ const data=await res.json();
+ codigo.value=data.codigo;
 }
-
 /* ================= FORNECEDORES ================= */
+
 async function carregarFornecedores(){
-  const res=await fetch("/suppliers",{headers:{Authorization:"Bearer "+token}});
-  const fornecedores=await res.json();
-  fornecedor.innerHTML="<option value=''>Selecione</option>";
-  listaFornecedores.innerHTML="";
+
+  const res = await fetch("/suppliers",{
+    headers:{
+      Authorization:"Bearer " + token
+    }
+  });
+
+  const fornecedores = await res.json();
+
+  const select = document.getElementById("fornecedor");
+  const lista = document.getElementById("listaFornecedores");
+
+  select.innerHTML = "<option value=''>Selecione</option>";
+  lista.innerHTML = "";
+
   fornecedores.forEach(f=>{
-    fornecedor.innerHTML+=`<option>${f.nome}</option>`;
-    listaFornecedores.innerHTML+=`
-<tr>
-<td>${f.nome}</td>
-<td><button onclick="excluirFornecedor(${f.id})">🗑</button></td>
-</tr>`;
+
+    /* COMBOBOX */
+    select.innerHTML += `
+      <option value="${f.nome}">
+        ${f.nome}
+      </option>`;
+
+    /* TABELA MODAL */
+    lista.innerHTML += `
+      <tr>
+        <td>${f.nome}</td>
+        <td>
+          <button onclick="excluirFornecedor(${f.id})">
+            🗑
+          </button>
+        </td>
+      </tr>`;
   });
 }
+
+/* ========= ADICIONAR FORNECEDOR ========= */
+
 async function adicionarFornecedor(){
-  if(!novoFornecedor.value)return;
-  await fetch("/suppliers",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},body:JSON.stringify({nome:novoFornecedor.value})});
-  novoFornecedor.value="";
-  carregarFornecedores();
-}
-async function excluirFornecedor(id){
-  await fetch("/suppliers/"+id,{method:"DELETE",headers:{Authorization:"Bearer "+token}});
+
+  const nome = document.getElementById("novoFornecedor").value.trim();
+
+  if(!nome) return;
+
+  await fetch("/suppliers",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer " + token
+    },
+    body: JSON.stringify({ nome })
+  });
+
+  document.getElementById("novoFornecedor").value = "";
+
   carregarFornecedores();
 }
 
-/* ================= MODAL ================= */
-function abrirModal(){document.getElementById("modalFornecedor").style.display="flex";}
-function fecharModal(){document.getElementById("modalFornecedor").style.display="none";}
-function voltarDashboard(){window.location.href="dashboard.html";}
+/* ========= EXCLUIR FORNECEDOR ========= */
+
+async function excluirFornecedor(id){
+
+  await fetch("/suppliers/" + id,{
+    method:"DELETE",
+    headers:{
+      Authorization:"Bearer " + token
+    }
+  });
+
+  carregarFornecedores();
+}
+
+/* ========= MODAL ========= */
+
+function abrirModal(){
+  document.getElementById("modalFornecedor").style.display = "flex";
+}
+
+function fecharModal(){
+  document.getElementById("modalFornecedor").style.display = "none";
+}
 
 /* ================= INIT ================= */
-window.onload=function(){
-  carregarProdutos();
-  carregarFornecedores();
-  gerarCodigoAutomatico();
+
+window.onload=()=>{
+ carregarProdutos();
+ carregarFornecedores();
+ gerarCodigoAutomatico();
 };
 
 </script>
