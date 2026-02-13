@@ -228,14 +228,21 @@ app.put("/products/:id/campo", authenticateToken, async(req,res)=>{
 
   const { campo, valor } = req.body;
 
-  const permitidos = [
-    "nome","fornecedor","sku","cor",
-    "tamanho","estoque",
-    "preco_custo","preco_venda",
-    "barcode","ano"
-  ];
+  const camposPermitidos = [
+  "nome",
+  "fornecedor",
+  "sku",
+  "cor",
+  "tamanho",
+  "estoque",
+  "preco_custo",
+  "preco_venda",
+  "barcode",
+  "ano"      // 👈 ADICIONAR ESTA LINHA
+];
 
-  if(!permitidos.includes(campo))
+
+  if(!camposPermitidos.includes(campo))
     return res.status(400).json({error:"Campo inválido"});
 
   await pool.query(
@@ -258,6 +265,96 @@ app.delete("/products/:id", authenticateToken, async(req,res)=>{
 app.get("/",(req,res)=>{
   res.sendFile(path.join(__dirname,"../frontend/login.html"));
 });
+
+const multer = require("multer");
+const XLSX = require("xlsx");
+
+const upload = multer({ storage: multer.memoryStorage() });
+
+app.post(
+"/products/import-excel",
+authenticateToken,
+upload.single("file"),
+async (req,res)=>{
+
+  try{
+
+    const workbook = XLSX.read(req.file.buffer,{type:"buffer"});
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const dados = XLSX.utils.sheet_to_json(sheet);
+
+    for(const item of dados){
+
+      const codigo = String(item.CODIGO || "").trim();
+      if(!codigo) continue;
+
+      const existe = await pool.query(
+        "SELECT id FROM products WHERE codigo=$1",
+        [codigo]
+      );
+
+      if(existe.rows.length){
+
+        await pool.query(`
+          UPDATE products SET
+          nome=$1,
+          fornecedor=$2,
+          sku=$3,
+          cor=$4,
+          tamanho=$5,
+          estoque=$6,
+          preco_custo=$7,
+          preco_venda=$8,
+          barcode=$9,
+          ano=$10
+          WHERE codigo=$11
+        `,[
+          item.NOME || "",
+          item.FORNECEDOR || "",
+          item.SKU || "",
+          item.COR || "",
+          item.TAMANHO || "",
+          parseInt(item.ESTOQUE)||0,
+          parseFloat(item.CUSTO)||0,
+          parseFloat(item.VENDA)||0,
+          item.NCM || "",
+          parseInt(item.ANO)||null,
+          codigo
+        ]);
+
+      }else{
+
+        await pool.query(`
+          INSERT INTO products
+          (codigo,nome,fornecedor,sku,cor,tamanho,
+          estoque,preco_custo,preco_venda,barcode,ano)
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+        `,[
+          codigo,
+          item.NOME || "",
+          item.FORNECEDOR || "",
+          item.SKU || "",
+          item.COR || "",
+          item.TAMANHO || "",
+          parseInt(item.ESTOQUE)||0,
+          parseFloat(item.CUSTO)||0,
+          parseFloat(item.VENDA)||0,
+          item.NCM || "",
+          parseInt(item.ANO)||null
+        ]);
+      }
+    }
+
+    res.json({success:true});
+
+  }catch(err){
+    console.log(err);
+    res.status(500).json({error:"Erro importar"});
+  }
+
+});
+
+
 
 /* START */
 
