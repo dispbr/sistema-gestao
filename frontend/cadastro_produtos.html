@@ -244,7 +244,7 @@ async function carregarProdutos(){
       <td class="variacao">${variacao}</td>
 
       <td contenteditable data-campo="barcode">${p.barcode||""}</td>
-
+      <td>${p.ano||""}</td>
       <td>
         <button onclick="excluirProduto(${p.id})">🗑</button>
       </td>
