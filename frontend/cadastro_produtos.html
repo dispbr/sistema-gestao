@@ -57,7 +57,6 @@
 </select>
 </div>
 
-
 <div>
 <label>SKU Completo</label>
 <input id="skuCompleto" disabled>
@@ -95,7 +94,7 @@
 
 <button class="btn-submit" onclick="salvar()">Adicionar Produto</button>
 
-<input class="search" placeholder="Buscar...">
+<input class="search" placeholder="Buscar..." onkeyup="buscar(this.value)">
 
 <table class="tabela">
 <thead>
@@ -120,10 +119,9 @@
 </section>
 </main>
 
-<!-- POPUP FORNECEDORES -->
+<!-- MODAL FORNECEDORES -->
 <div class="modal-bg" id="modalFornecedor">
 <div class="modal">
-
 <h3>Gerenciar Fornecedores</h3>
 
 <div style="display:flex; gap:10px; margin-bottom:20px;">
@@ -142,211 +140,251 @@
 </table>
 
 <button class="btn-close" onclick="fecharModal()">Fechar</button>
-
 </div>
 </div>
 
 <script>
+
 const token = localStorage.getItem("token");
-const role = localStorage.getItem("role");
+if(!token) window.location.href="login.html";
 
-/* ================= MAIÚSCULO ================= */
-document.addEventListener("input", function(e){
-  if(e.target.tagName === "INPUT" || e.target.tagName === "SELECT"){
-    e.target.value = e.target.value.toUpperCase();
-  }
-});
+/* ================= GERAR CÓDIGO AUTOMÁTICO ================= */
 
-/* ================= SKU AUTOMÁTICO ================= */
-function atualizarSKU(){
-  skuCompleto.value = sku.value + "-" + cor.value + "-" + tamanho.value;
+async function gerarCodigoAutomatico(){
+  const res = await fetch("/products/next-code",{
+    headers:{ Authorization:"Bearer "+token }
+  });
+  const data = await res.json();
+  codigo.value = data.codigo;
 }
 
-sku.oninput = atualizarSKU;
-cor.oninput = atualizarSKU;
-tamanho.oninput = atualizarSKU;
+/* ================= CARREGAR PRODUTOS ================= */
 
-/* ================= VARIAÇÃO ================= */
+async function carregarProdutos(q=""){
+  const res = await fetch("/products?q="+q,{
+    headers:{ Authorization:"Bearer "+token }
+  });
 
-function limparMoeda(valor){
-  return valor.replace(/[^\d]/g,'')/100;
+  const produtos = await res.json();
+  lista.innerHTML="";
+
+  produtos.forEach(p=>{
+    lista.innerHTML+=`
+    <tr data-id="${p.id}">
+      <td>${p.codigo}</td>
+      <td contenteditable data-campo="nome">${p.nome}</td>
+      <td contenteditable data-campo="fornecedor">${p.fornecedor}</td>
+      <td contenteditable data-campo="sku">${p.sku}</td>
+      <td contenteditable data-campo="cor">${p.cor}</td>
+      <td contenteditable data-campo="tamanho">${p.tamanho}</td>
+      <td contenteditable data-campo="estoque">${p.estoque}</td>
+      <td contenteditable data-campo="preco_custo">${formatarMoeda(p.preco_custo)}</td>
+      <td contenteditable data-campo="preco_venda">${formatarMoeda(p.preco_venda)}</td>
+      <td>${p.variacao || ""}</td>
+      <td contenteditable data-campo="barcode">${p.barcode}</td>
+      <td><button onclick="excluirProduto(${p.id})">🗑</button></td>
+    </tr>`;
+  });
 }
 
-function calcularVariacao(){
-  let c = limparMoeda(custo.value);
-  let v = limparMoeda(venda.value);
-
-  if(!c || !v){
-    variacao.value = "";
-    return;
-  }
-
-  let resultado = ((v-c)/c)*100;
-  variacao.value = resultado.toFixed(2)+"%";
+function buscar(q){
+  carregarProdutos(q);
 }
 
-custo.addEventListener("input", calcularVariacao);
-venda.addEventListener("input", calcularVariacao);
-
-/* ================= SALVAR NO BANCO ================= */
+/* ================= SALVAR ================= */
 
 async function salvar(){
 
-  const dados = {
-    codigo: codigo.value,
-    nome: nome.value,
-    fornecedor: fornecedor.value,
-    sku: sku.value,
-    cor: cor.value,
-    tamanho: tamanho.value,
-    estoque: estoque.value,
-    preco_custo: limparMoeda(custo.value),
-    preco_venda: limparMoeda(venda.value),
-    variacao: variacao.value,
-    barcode: barcode.value
+  const dados={
+    codigo:codigo.value,
+    nome:nome.value,
+    fornecedor:fornecedor.value,
+    sku:sku.value,
+    cor:cor.value,
+    tamanho:tamanho.value,
+    estoque:estoque.value,
+    preco_custo:limparMoeda(custo.value),
+    preco_venda:limparMoeda(venda.value),
+    variacao:variacao.value,
+    barcode:barcode.value
   };
 
-  const res = await fetch("/products",{
+  const res=await fetch("/products",{
     method:"POST",
     headers:{
       "Content-Type":"application/json",
       Authorization:"Bearer "+token
     },
-    body: JSON.stringify(dados)
+    body:JSON.stringify(dados)
   });
 
-  const produto = await res.json();
+  if(!res.ok) return alert("Erro ao salvar");
 
-  adicionarLinha(produto);
+  limparFormulario();
+  gerarCodigoAutomatico();
+  carregarProdutos();
 }
 
+/* ================= DELETE ================= */
 
-/* ================= ADICIONAR LINHA ================= */
-
-function adicionarLinha(p){
-
-  lista.innerHTML += `
-  <tr data-id="${p.id}">
-
-    <td>${p.codigo}</td>
-    <td contenteditable="true">${p.nome}</td>
-    <td contenteditable="true">${p.fornecedor}</td>
-    <td contenteditable="true">${p.estoque}</td>
-    <td contenteditable="true">${p.preco_custo}</td>
-    <td contenteditable="true">${p.preco_venda}</td>
-
-    <td>
-      <button onclick="excluir(this)">🗑</button>
-    </td>
-
-  </tr>`;
-}
-
-
-/* ================= INLINE UPDATE ================= */
-
-document.addEventListener("blur", async function(e){
-
-  if(!e.target.hasAttribute("contenteditable")) return;
-
-  if(role !== "admin"){
-    alert("Somente ADMIN pode editar.");
-    return;
-  }
-
-  const row = e.target.closest("tr");
-  const id = row.getAttribute("data-id");
-
-  const dados = {
-    nome: row.children[1].innerText,
-    fornecedor: row.children[2].innerText,
-    sku: row.children[3].innerText,
-    cor: row.children[4].innerText,
-    tamanho: row.children[5].innerText,
-    estoque: row.children[6].innerText,
-    preco_custo: limparMoeda(row.children[7].innerText),
-    preco_venda: limparMoeda(row.children[8].innerText),
-    variacao: calcularVariacaoTabela(
-                row.children[7].innerText,
-                row.children[8].innerText),
-    barcode: row.children[10].innerText
-  };
+async function excluirProduto(id){
+  if(!confirm("Excluir produto?")) return;
 
   await fetch("/products/"+id,{
+    method:"DELETE",
+    headers:{Authorization:"Bearer "+token}
+  });
+
+  carregarProdutos();
+}
+
+/* ================= FORNECEDORES ================= */
+
+function abrirModal(){
+  modalFornecedor.style.display="flex";
+  carregarFornecedores();
+}
+
+function fecharModal(){
+  modalFornecedor.style.display="none";
+}
+
+async function carregarFornecedores(){
+  const res=await fetch("/suppliers",{headers:{Authorization:"Bearer "+token}});
+  const dados=await res.json();
+
+  fornecedor.innerHTML="<option value=''>Selecione</option>";
+  listaFornecedores.innerHTML="";
+
+  dados.forEach(f=>{
+    fornecedor.innerHTML+=`<option>${f.nome}</option>`;
+    listaFornecedores.innerHTML+=`
+    <tr>
+      <td>${f.nome}</td>
+      <td><button onclick="excluirFornecedor(${f.id})">🗑</button></td>
+    </tr>`;
+  });
+}
+
+async function adicionarFornecedor(){
+  if(!novoFornecedor.value) return;
+
+  await fetch("/suppliers",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer "+token
+    },
+    body:JSON.stringify({nome:novoFornecedor.value})
+  });
+
+  novoFornecedor.value="";
+  carregarFornecedores();
+}
+
+async function excluirFornecedor(id){
+  await fetch("/suppliers/"+id,{
+    method:"DELETE",
+    headers:{Authorization:"Bearer "+token}
+  });
+  carregarFornecedores();
+}
+
+/* ================= MÁSCARA R$ ================= */
+
+function formatarMoeda(valor){
+  return Number(valor||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+}
+
+function limparMoeda(valor){
+  return parseFloat(valor.replace(/[^\d]/g,''))/100||0;
+}
+
+custo.addEventListener("input",()=>{
+  formatarInput(custo);
+  calcularVariacao();
+});
+
+venda.addEventListener("input",()=>{
+  formatarInput(venda);
+  calcularVariacao();
+});
+
+function formatarInput(input){
+  let valor=input.value.replace(/\D/g,'');
+  if(!valor) return input.value="";
+  valor=(valor/100).toFixed(2)+'';
+  valor=valor.replace(".",",");
+  valor=valor.replace(/\B(?=(\d{3})+(?!\d))/g,".");
+  input.value="R$ "+valor;
+}
+
+function calcularVariacao(){
+  const c=limparMoeda(custo.value);
+  const v=limparMoeda(venda.value);
+  if(!c||!v) return variacao.value="";
+  variacao.value=((v-c)/c*100).toFixed(2)+"%";
+}
+
+/* ================= INLINE SAVE ================= */
+
+document.addEventListener("blur",async e=>{
+  if(!e.target.hasAttribute("contenteditable")) return;
+
+  const campo=e.target.dataset.campo;
+  const row=e.target.closest("tr");
+  const id=row.dataset.id;
+  let valor=e.target.innerText;
+
+  if(campo==="preco_custo"||campo==="preco_venda"){
+    valor=limparMoeda(valor);
+  }
+
+  await fetch("/products/"+id+"/campo",{
     method:"PUT",
     headers:{
       "Content-Type":"application/json",
       Authorization:"Bearer "+token
     },
-    body: JSON.stringify(dados)
+    body:JSON.stringify({campo,valor})
   });
 
-  row.style.background="#dcfce7";
-
-  setTimeout(()=> row.style.background="", 600);
-
-}, true);
-
-/* ================= VARIAÇÃO TABELA ================= */
-
-function calcularVariacaoTabela(custo,venda){
-  let c = limparMoeda(custo);
-  let v = limparMoeda(venda);
-  if(c===0) return "0%";
-  return (((v-c)/c)*100).toFixed(2)+"%";
-}
-
-/* ================= MODAL ================= */
-
-function abrirModal(){
-  document.getElementById("modalFornecedor").style.display = "flex";
-}
-
-function fecharModal(){
-  document.getElementById("modalFornecedor").style.display = "none";
-}
-
-/* ================= FORNECEDORES ================= */
-
-function adicionarFornecedor(){
-
-  const nomeFornecedor = document.getElementById("novoFornecedor").value;
-
-  if(!nomeFornecedor) return;
-
-  document.getElementById("listaFornecedores").innerHTML += `
-    <tr>
-      <td>${nomeFornecedor}</td>
-      <td>
-        <button class="btn red small"
-          onclick="this.closest('tr').remove()">🗑</button>
-      </td>
-    </tr>
-  `;
-
-  document.getElementById("fornecedor").innerHTML += `
-    <option>${nomeFornecedor}</option>
-  `;
-
-  document.getElementById("novoFornecedor").value = "";
-}
-/* ================= GERAR CÓDIGO DE BARRAS ================= */
-
-function gerarCodigo(){
-
-  const barcodeInput = document.getElementById("barcode");
-
-  // Gera número aleatório de 13 dígitos (padrão EAN)
-  let codigo = "";
-
-  for(let i = 0; i < 13; i++){
-    codigo += Math.floor(Math.random() * 10);
+  if(campo==="preco_custo"||campo==="preco_venda"){
+    const custo=limparMoeda(row.children[7].innerText);
+    const venda=limparMoeda(row.children[8].innerText);
+    if(custo){
+      row.children[9].innerText=((venda-custo)/custo*100).toFixed(2)+"%";
+    }
   }
 
-  barcodeInput.value = codigo;
+  e.target.style.background="#dcfce7";
+  setTimeout(()=>e.target.style.background="",500);
+
+},true);
+
+/* ================= OUTROS ================= */
+
+function limparFormulario(){
+  nome.value="";
+  sku.value="";
+  cor.value="";
+  estoque.value="";
+  custo.value="";
+  venda.value="";
+  variacao.value="";
+  barcode.value="";
 }
 
-</script>
+function gerarCodigo(){
+  barcode.value=Math.floor(Math.random()*999999999999);
+}
 
+window.onload=()=>{
+  carregarProdutos();
+  carregarFornecedores();
+  gerarCodigoAutomatico();
+};
+
+</script>
 </body>
 </html>
