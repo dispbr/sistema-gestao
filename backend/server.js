@@ -197,18 +197,18 @@ app.post("/products", authenticateToken, async(req,res)=>{
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
       RETURNING *
     `,[
-      codigo||"",
-      nome||"",
-      fornecedor||"",
-      sku||"",
-      cor||"",
-      tamanho||"",
-      parseInt(estoque)||0,
-      parseFloat(preco_custo)||0,
-      parseFloat(preco_venda)||0,
-      variacao||"",
-      barcode||"",
-      parseInt(ano)||null
+      codigo || "",
+      nome || "",
+      fornecedor || "",
+      sku || "",
+      cor || "",
+      tamanho || "",
+      parseInt(estoque) || 0,
+      parseFloat(preco_custo) || 0,
+      parseFloat(preco_venda) || 0,
+      variacao || "",
+      barcode || "",
+      ano ? parseInt(ano) : null
     ]);
 
     res.json(result.rows[0]);
@@ -283,67 +283,82 @@ async (req,res)=>{
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const dados = XLSX.utils.sheet_to_json(sheet);
 
-    for(const item of dados){
+    for (const item of dados) {
 
-      const codigo = String(item.CODIGO || "").trim();
-      if(!codigo) continue;
+  const codigo = String(
+    item["Código"] || item["CODIGO"] || ""
+  ).trim();
 
-      const existe = await pool.query(
-        "SELECT id FROM products WHERE codigo=$1",
-        [codigo]
-      );
+  if (!codigo) continue;
 
-      if(existe.rows.length){
+  const existe = await pool.query(
+    "SELECT id FROM products WHERE codigo=$1",
+    [codigo]
+  );
 
-        await pool.query(`
-          UPDATE products SET
-          nome=$1,
-          fornecedor=$2,
-          sku=$3,
-          cor=$4,
-          tamanho=$5,
-          estoque=$6,
-          preco_custo=$7,
-          preco_venda=$8,
-          barcode=$9,
-          ano=$10
-          WHERE codigo=$11
-        `,[
-          item.NOME || "",
-          item.FORNECEDOR || "",
-          item.SKU || "",
-          item.COR || "",
-          item.TAMANHO || "",
-          parseInt(item.ESTOQUE)||0,
-          parseFloat(item.CUSTO)||0,
-          parseFloat(item.VENDA)||0,
-          item.NCM || "",
-          parseInt(item.ANO)||null,
-          codigo
-        ]);
+  const nome = item["Nome"] || item["NOME"] || "";
+  const fornecedor = item["Fornecedor"] || item["FORNECEDOR"] || "";
+  const sku = item["Sku"] || item["SKU"] || "";
+  const cor = item["Cor"] || item["COR"] || "";
+  const tamanho = item["Tamanho"] || item["TAMANHO"] || "";
+  const estoque = parseInt(item["Estoque"] || item["ESTOQUE"]) || 0;
+  const custo = parseFloat(item["Custo"] || item["CUSTO"]) || 0;
+  const venda = parseFloat(item["Venda"] || item["VENDA"]) || 0;
+  const barcode = item["NCM"] || "";
+  const ano = parseInt(item["Ano"] || item["ANO"]) || null;
 
-      }else{
+  if (existe.rows.length) {
 
-        await pool.query(`
-          INSERT INTO products
-          (codigo,nome,fornecedor,sku,cor,tamanho,
-          estoque,preco_custo,preco_venda,barcode,ano)
-          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-        `,[
-          codigo,
-          item.NOME || "",
-          item.FORNECEDOR || "",
-          item.SKU || "",
-          item.COR || "",
-          item.TAMANHO || "",
-          parseInt(item.ESTOQUE)||0,
-          parseFloat(item.CUSTO)||0,
-          parseFloat(item.VENDA)||0,
-          item.NCM || "",
-          parseInt(item.ANO)||null
-        ]);
-      }
-    }
+    await pool.query(`
+      UPDATE products SET
+        nome=$1,
+        fornecedor=$2,
+        sku=$3,
+        cor=$4,
+        tamanho=$5,
+        estoque=$6,
+        preco_custo=$7,
+        preco_venda=$8,
+        barcode=$9,
+        ano=$10
+      WHERE codigo=$11
+    `, [
+      nome,
+      fornecedor,
+      sku,
+      cor,
+      tamanho,
+      estoque,
+      custo,
+      venda,
+      barcode,
+      ano,
+      codigo
+    ]);
+
+  } else {
+
+    await pool.query(`
+      INSERT INTO products
+      (codigo,nome,fornecedor,sku,cor,tamanho,
+       estoque,preco_custo,preco_venda,barcode,ano)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+    `, [
+      codigo,
+      nome,
+      fornecedor,
+      sku,
+      cor,
+      tamanho,
+      estoque,
+      custo,
+      venda,
+      barcode,
+      ano
+    ]);
+  }
+}
+
 
     res.json({success:true});
 

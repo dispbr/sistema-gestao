@@ -134,12 +134,7 @@
 </tr>
 </thead>
 
-<th>Variação</th>
-<th>NCM</th>
-<th>Ação</th>
-</tr>
-</thead>
-
+app.post("/products/import-excel",
 <tbody id="lista"></tbody>
 </table>
 
@@ -205,64 +200,66 @@ tamanho.onchange=atualizarSKU;
 
 /* ================= CARREGAR PRODUTOS ================= */
 
-lista.innerHTML += `
-<tr data-id="${p.id}">
+/* ================= CARREGAR PRODUTOS ================= */
 
-<td>${p.codigo}</td>
+async function carregarProdutos(){
 
-<td contenteditable data-campo="nome">${p.nome||""}</td>
+  const res = await fetch("/products",{
+    headers:{ Authorization:"Bearer "+token }
+  });
 
-<td contenteditable data-campo="fornecedor">${p.fornecedor||""}</td>
+  const produtos = await res.json();
 
-<td contenteditable data-campo="sku">${p.sku||""}</td>
+  lista.innerHTML = "";
 
-<td contenteditable data-campo="cor">${p.cor||""}</td>
+  produtos.forEach(p=>{
 
-<td contenteditable data-campo="tamanho">${p.tamanho||""}</td>
+    lista.innerHTML += `
+    <tr data-id="${p.id}">
 
-<td class="skuFull">
-${[p.sku,p.cor,p.tamanho].filter(Boolean).join("-")}
-</td>
+      <td>${p.codigo}</td>
 
-<td contenteditable data-campo="estoque">${p.estoque||0}</td>
+      <td contenteditable data-campo="nome">${p.nome||""}</td>
 
-<td contenteditable data-campo="preco_custo">
-${formatarMoeda(p.preco_custo)}
-</td>
+      <td contenteditable data-campo="fornecedor">${p.fornecedor||""}</td>
 
-<td contenteditable data-campo="preco_venda">
-${formatarMoeda(p.preco_venda)}
-</td>
+      <td contenteditable data-campo="sku">${p.sku||""}</td>
 
-<td class="variacao">
-${calcularVariacaoTabela(p.preco_custo,p.preco_venda)}
-</td>
+      <td contenteditable data-campo="cor">${p.cor||""}</td>
 
-<td contenteditable data-campo="barcode">${p.barcode||""}</td>
+      <td contenteditable data-campo="tamanho">${p.tamanho||""}</td>
 
-<td contenteditable data-campo="ano">${p.ano||""}</td>
+      <td class="skuFull">
+      ${[p.sku,p.cor,p.tamanho].filter(Boolean).join("-")}
+      </td>
 
-<td>
-<button onclick="excluirProduto(${p.id})">🗑</button>
-</td>
+      <td contenteditable data-campo="estoque">${p.estoque||0}</td>
 
-</tr>`;
+      <td contenteditable data-campo="preco_custo">
+      ${formatarMoeda(p.preco_custo)}
+      </td>
 
-/* ================= AUTO SAVE INLINE ================= */
+      <td contenteditable data-campo="preco_venda">
+      ${formatarMoeda(p.preco_venda)}
+      </td>
 
-let timeoutSave;
+      <td class="variacao">
+      ${calcularVariacaoTabela(p.preco_custo,p.preco_venda)}
+      </td>
 
-document.addEventListener("input", e=>{
+      <td contenteditable data-campo="barcode">${p.barcode||""}</td>
 
- if(!e.target.hasAttribute("contenteditable")) return;
+      <td contenteditable data-campo="ano">${p.ano||""}</td>
 
- clearTimeout(timeoutSave);
+      <td>
+        <button onclick="excluirProduto(${p.id})">🗑</button>
+      </td>
 
- timeoutSave=setTimeout(()=>{
-   salvarInline(e.target);
- },600);
+    </tr>`;
+  });
+}
 
-});
+
 
 async function salvarInline(el){
 
