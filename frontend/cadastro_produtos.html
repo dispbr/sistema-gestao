@@ -151,13 +151,19 @@ if(!token) location.href="login.html";
 
 /* ================= MAIÚSCULO ================= */
 document.addEventListener("input", e=>{
- if(e.target.matches("input, [contenteditable]")){
+
+ if(e.target.hasAttribute("contenteditable")){
+   e.target.innerText = e.target.innerText.toUpperCase();
+ }
+
+ if(e.target.tagName==="INPUT"){
    if(!["custo","venda"].includes(e.target.id)){
-     if(e.target.value)
-       e.target.value = e.target.value.toUpperCase();
+     e.target.value = e.target.value.toUpperCase();
    }
  }
+
 });
+
 
 /* ================= SKU COMPLETO ================= */
 function atualizarSKU(){
@@ -172,39 +178,71 @@ tamanho.onchange=atualizarSKU;
 
 async function carregarProdutos(){
 
- const res = await fetch("/products",{
-  headers:{Authorization:"Bearer "+token}
- });
+  const res = await fetch("/products",{
+    headers:{
+      Authorization:"Bearer "+token
+    }
+  });
 
- const produtos = await res.json();
+  const produtos = await res.json();
 
- lista.innerHTML="";
+  lista.innerHTML="";
 
- produtos.forEach(p=>{
+  produtos.forEach(p=>{
 
-  const variacao = calcularVariacaoTabela(
-    p.preco_custo,
-    p.preco_venda
-  );
+    /* ===== SKU COMPLETO AUTOMÁTICO ===== */
+    const skuCompleto =
+      `${p.sku || ""}-${p.cor || ""}-${p.tamanho || ""}`;
 
-  lista.innerHTML += `
-  <tr data-id="${p.id}">
-    <td>${p.codigo}</td>
-    <td contenteditable data-campo="nome">${p.nome||""}</td>
-    <td contenteditable data-campo="fornecedor">${p.fornecedor||""}</td>
-    <td contenteditable data-campo="sku">${p.sku||""}</td>
-    <td contenteditable data-campo="cor">${p.cor||""}</td>
-    <td contenteditable data-campo="tamanho">${p.tamanho||""}</td>
-    <td>${p.sku_completo||""}</td>
-    <td contenteditable data-campo="estoque">${p.estoque||0}</td>
-    <td contenteditable data-campo="preco_custo">${formatarMoeda(p.preco_custo)}</td>
-    <td contenteditable data-campo="preco_venda">${formatarMoeda(p.preco_venda)}</td>
-    <td class="variacao">${variacao}</td>
-    <td contenteditable data-campo="barcode">${p.barcode||""}</td>
-    <td><button onclick="excluirProduto(${p.id})">🗑</button></td>
-  </tr>`;
- });
+    /* ===== VARIAÇÃO AUTOMÁTICA ===== */
+    const variacao = calcularVariacaoTabela(
+      p.preco_custo,
+      p.preco_venda
+    );
+
+    lista.innerHTML += `
+    <tr data-id="${p.id}">
+
+      <td>${p.codigo}</td>
+
+      <td contenteditable data-campo="nome">${p.nome||""}</td>
+
+      <td contenteditable data-campo="fornecedor">${p.fornecedor||""}</td>
+
+      <td contenteditable data-campo="sku">${p.sku||""}</td>
+
+      <td contenteditable data-campo="cor">${p.cor||""}</td>
+
+      <td contenteditable data-campo="tamanho">${p.tamanho||""}</td>
+
+      <!-- SKU COMPLETO AGORA FUNCIONA -->
+      <td class="skuFull">${skuCompleto}</td>
+
+      <td contenteditable data-campo="estoque">${p.estoque||0}</td>
+
+      <!-- MÁSCARA R$ -->
+      <td contenteditable data-campo="preco_custo">
+        ${formatarMoeda(p.preco_custo)}
+      </td>
+
+      <td contenteditable data-campo="preco_venda">
+        ${formatarMoeda(p.preco_venda)}
+      </td>
+
+      <!-- VARIAÇÃO FUNCIONANDO -->
+      <td class="variacao">${variacao}</td>
+
+      <td contenteditable data-campo="barcode">${p.barcode||""}</td>
+
+      <td>
+        <button onclick="excluirProduto(${p.id})">🗑</button>
+      </td>
+
+    </tr>`;
+  });
+
 }
+
 
 /* ================= AUTO SAVE INLINE ================= */
 
@@ -239,6 +277,7 @@ async function salvarInline(el){
  if(campo==="estoque"){
    valor = parseInt(valor)||0;
  }
+recalcularLinha(row);
 
  await fetch(`/products/${id}/campo`,{
    method:"PUT",
@@ -446,6 +485,8 @@ function abrirModal(){
 function fecharModal(){
   document.getElementById("modalFornecedor").style.display = "none";
 }
+
+
 
 /* ================= INIT ================= */
 
