@@ -22,19 +22,23 @@ const SECRET = process.env.JWT_SECRET || "supersecretkey";
 /* ================= AUTH ================= */
 
 function authenticateToken(req, res, next) {
+
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(" ")[1];
 
-  if (!token) return res.status(401).json({ error: "Token não enviado" });
+  if (!token)
+    return res.status(401).json({ error: "Token não enviado" });
 
   jwt.verify(token, SECRET, (err, user) => {
-    if (err) return res.status(403).json({ error: "Token inválido" });
+    if (err)
+      return res.status(403).json({ error: "Token inválido" });
+
     req.user = user;
     next();
   });
 }
 
-/* ================= CRIAR / ATUALIZAR TABELAS ================= */
+/* ================= CRIAR TABELAS ================= */
 
 async function criarTabelas() {
 
@@ -66,33 +70,18 @@ async function criarTabelas() {
     );
   `);
 
-  /* GARANTE QUE AS COLUNAS EXISTEM */
+  /* garante colunas novas */
   await pool.query(`
-    ALTER TABLE products 
-    ADD COLUMN IF NOT EXISTS sku VARCHAR(100);
+    ALTER TABLE products
+    ADD COLUMN IF NOT EXISTS sku VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS cor VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS tamanho VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS variacao VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS barcode VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS ano INTEGER;
   `);
 
-  await pool.query(`
-    ALTER TABLE products 
-    ADD COLUMN IF NOT EXISTS cor VARCHAR(100);
-  `);
-
-  await pool.query(`
-    ALTER TABLE products 
-    ADD COLUMN IF NOT EXISTS tamanho VARCHAR(100);
-  `);
-
-  await pool.query(`
-    ALTER TABLE products 
-    ADD COLUMN IF NOT EXISTS variacao VARCHAR(50);
-  `);
-
-  await pool.query(`
-    ALTER TABLE products 
-    ADD COLUMN IF NOT EXISTS barcode VARCHAR(100);
-  `);
-
-  console.log("Tabelas verificadas ✔");
+  console.log("Tabelas OK");
 }
 
 criarTabelas();
@@ -100,63 +89,65 @@ criarTabelas();
 /* ================= LOGIN ================= */
 
 app.post("/login", async (req, res) => {
-  try {
-    const { username, password } = req.body;
 
-    const result = await pool.query(
-      "SELECT * FROM users WHERE username=$1",
-      [username]
-    );
+  const { username, password } = req.body;
 
-    if (result.rows.length === 0)
-      return res.status(400).json({ error: "Usuário inválido" });
+  const result = await pool.query(
+    "SELECT * FROM users WHERE username=$1",
+    [username]
+  );
 
-    const user = result.rows[0];
-    const valid = await bcrypt.compare(password, user.password);
+  if (!result.rows.length)
+    return res.status(400).json({ error: "Usuário inválido" });
 
-    if (!valid)
-      return res.status(400).json({ error: "Senha inválida" });
+  const user = result.rows[0];
 
-    const token = jwt.sign(
-      { id: user.id, role: user.role },
-      SECRET,
-      { expiresIn: "30m" }
-    );
+  const valid = await bcrypt.compare(password, user.password);
 
-    res.json({ token, role: user.role });
+  if (!valid)
+    return res.status(400).json({ error: "Senha inválida" });
 
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Erro no login" });
-  }
+  const token = jwt.sign(
+    { id: user.id, role: user.role },
+    SECRET,
+    { expiresIn: "30m" }
+  );
+
+  res.json({ token, role: user.role });
 });
 
 /* ================= FORNECEDORES ================= */
 
-app.get("/suppliers", authenticateToken, async (req, res) => {
+app.get("/suppliers", authenticateToken, async (req,res)=>{
   const result = await pool.query("SELECT * FROM suppliers ORDER BY nome");
   res.json(result.rows);
 });
 
-app.post("/suppliers", authenticateToken, async (req, res) => {
-  try {
-    const { nome } = req.body;
-    await pool.query("INSERT INTO suppliers (nome) VALUES ($1)", [nome]);
-    res.json({ success: true });
-  } catch {
-    res.status(400).json({ error: "Fornecedor já existe" });
+app.post("/suppliers", authenticateToken, async (req,res)=>{
+
+  try{
+    await pool.query(
+      "INSERT INTO suppliers(nome) VALUES($1)",
+      [req.body.nome]
+    );
+
+    res.json({success:true});
+
+  }catch{
+    res.status(400).json({error:"Fornecedor já existe"});
   }
+
 });
 
-app.delete("/suppliers/:id", authenticateToken, async (req, res) => {
-  const id = parseInt(req.params.id);
-  await pool.query("DELETE FROM suppliers WHERE id=$1", [id]);
-  res.json({ success: true });
+app.delete("/suppliers/:id", authenticateToken, async(req,res)=>{
+  await pool.query("DELETE FROM suppliers WHERE id=$1",[req.params.id]);
+  res.json({success:true});
 });
 
 /* ================= PRODUTOS ================= */
 
-app.get("/products", authenticateToken, async (req, res) => {
+app.get("/products", authenticateToken, async (req,res)=>{
+
   const busca = req.query.q || "";
 
   const result = await pool.query(
@@ -167,111 +158,111 @@ app.get("/products", authenticateToken, async (req, res) => {
   res.json(result.rows);
 });
 
-/* GERAR PRÓXIMO CÓDIGO */
-app.get("/products/next-code", authenticateToken, async (req, res) => {
+/* próximo código */
+
+app.get("/products/next-code", authenticateToken, async(req,res)=>{
 
   const result = await pool.query(`
-    SELECT MAX(CAST(codigo AS INTEGER)) as ultimo 
+    SELECT MAX(CAST(codigo AS INTEGER)) as ultimo
     FROM products
     WHERE codigo ~ '^[0-9]+$'
   `);
 
-  let ultimo = result.rows[0].ultimo || 0;
-  let proximo = parseInt(ultimo) + 1;
+  const ultimo = result.rows[0].ultimo || 0;
 
   res.json({
-    codigo: String(proximo).padStart(4, "0")
+    codigo: String(Number(ultimo)+1).padStart(4,"0")
   });
 });
 
-/* CRIAR PRODUTO */
-app.post("/products", authenticateToken, async (req, res) => {
-  try {
+/* criar produto */
+
+app.post("/products", authenticateToken, async(req,res)=>{
+
+  try{
 
     const {
-      codigo, nome, fornecedor,
-      sku, cor, tamanho,
-      estoque, preco_custo,
-      preco_venda, variacao, barcode
+      codigo,nome,fornecedor,
+      sku,cor,tamanho,
+      estoque,preco_custo,
+      preco_venda,variacao,
+      barcode,ano
     } = req.body;
 
     const result = await pool.query(`
       INSERT INTO products
       (codigo,nome,fornecedor,sku,cor,tamanho,
-       estoque,preco_custo,preco_venda,variacao,barcode)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+       estoque,preco_custo,preco_venda,
+       variacao,barcode,ano)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
       RETURNING *
-    `, [
-      codigo || "",
-      nome || "",
-      fornecedor || "",
-      sku || "",
-      cor || "",
-      tamanho || "",
-      parseInt(estoque) || 0,
-      parseFloat(preco_custo) || 0,
-      parseFloat(preco_venda) || 0,
-      variacao || "",
-      barcode || ""
+    `,[
+      codigo||"",
+      nome||"",
+      fornecedor||"",
+      sku||"",
+      cor||"",
+      tamanho||"",
+      parseInt(estoque)||0,
+      parseFloat(preco_custo)||0,
+      parseFloat(preco_venda)||0,
+      variacao||"",
+      barcode||"",
+      parseInt(ano)||null
     ]);
 
     res.json(result.rows[0]);
 
-  } catch (err) {
-    console.error("ERRO AO SALVAR:", err);
-    res.status(500).json({ error: "Erro ao salvar produto" });
+  }catch(err){
+    console.log(err);
+    res.status(500).json({error:"Erro ao salvar"});
   }
 });
 
-/* INLINE UPDATE */
-app.put("/products/:id/campo", authenticateToken, async (req, res) => {
+/* inline edit */
 
-  if (req.user.role !== "admin")
-    return res.status(403).json({ error: "Somente admin pode editar" });
+app.put("/products/:id/campo", authenticateToken, async(req,res)=>{
 
-  const id = parseInt(req.params.id);
+  if(req.user.role !== "admin")
+    return res.status(403).json({error:"Somente admin"});
+
   const { campo, valor } = req.body;
 
-  const camposPermitidos = [
+  const permitidos = [
     "nome","fornecedor","sku","cor",
     "tamanho","estoque",
-    "preco_custo","preco_venda","barcode"
+    "preco_custo","preco_venda",
+    "barcode","ano"
   ];
 
-  if (!camposPermitidos.includes(campo))
-    return res.status(400).json({ error: "Campo inválido" });
-
-  let valorFinal = valor;
-
-  if (campo === "estoque")
-    valorFinal = parseInt(valor) || 0;
-
-  if (campo === "preco_custo" || campo === "preco_venda")
-    valorFinal = parseFloat(valor) || 0;
+  if(!permitidos.includes(campo))
+    return res.status(400).json({error:"Campo inválido"});
 
   await pool.query(
     `UPDATE products SET ${campo}=$1 WHERE id=$2`,
-    [valorFinal, id]
+    [valor, req.params.id]
   );
 
-  res.json({ success: true });
+  res.json({success:true});
 });
 
-/* DELETE PRODUTO */
-app.delete("/products/:id", authenticateToken, async (req, res) => {
-  const id = parseInt(req.params.id);
-  await pool.query("DELETE FROM products WHERE id=$1", [id]);
-  res.json({ success: true });
+/* delete */
+
+app.delete("/products/:id", authenticateToken, async(req,res)=>{
+  await pool.query("DELETE FROM products WHERE id=$1",[req.params.id]);
+  res.json({success:true});
 });
-                                    
+
 /* ROOT */
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/login.html"));
+
+app.get("/",(req,res)=>{
+  res.sendFile(path.join(__dirname,"../frontend/login.html"));
 });
 
 /* START */
+
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-  console.log("Servidor rodando na porta " + PORT);
+app.listen(PORT, ()=>{
+  console.log("Servidor rodando na porta "+PORT);
 });
