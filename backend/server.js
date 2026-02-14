@@ -25,10 +25,14 @@ const SECRET = process.env.JWT_SECRET || "supersecretkey";
 
 function authenticateToken(req,res,next){
   const token = req.headers.authorization?.split(" ")[1];
-  if(!token) return res.status(401).json({error:"Token não enviado"});
+
+  if(!token)
+    return res.status(401).json({error:"Token não enviado"});
 
   jwt.verify(token, SECRET,(err,user)=>{
-    if(err) return res.status(403).json({error:"Token inválido"});
+    if(err)
+      return res.status(403).json({error:"Token inválido"});
+
     req.user=user;
     next();
   });
@@ -37,6 +41,15 @@ function authenticateToken(req,res,next){
 /* ================= TABELAS ================= */
 
 async function criarTabelas(){
+
+  await pool.query(`
+  CREATE TABLE IF NOT EXISTS users(
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(100) UNIQUE,
+    password TEXT,
+    role VARCHAR(20) DEFAULT 'admin'
+  );
+  `);
 
   await pool.query(`
   CREATE TABLE IF NOT EXISTS products(
@@ -62,14 +75,55 @@ async function criarTabelas(){
     nome VARCHAR(200) UNIQUE
   );
   `);
+
+  console.log("Tabelas OK");
 }
 
 criarTabelas();
 
+/* ================= LOGIN ================= */
+
+app.post("/login", async(req,res)=>{
+
+  try{
+
+    const {username,password} = req.body;
+
+    const r = await pool.query(
+      "SELECT * FROM users WHERE username=$1",
+      [username]
+    );
+
+    if(!r.rows.length)
+      return res.status(400).json({error:"Usuário inválido"});
+
+    const user = r.rows[0];
+
+    const ok = await bcrypt.compare(password,user.password);
+
+    if(!ok)
+      return res.status(400).json({error:"Senha inválida"});
+
+    const token = jwt.sign(
+      {id:user.id, role:user.role},
+      SECRET,
+      {expiresIn:"30m"}
+    );
+
+    res.json({token, role:user.role});
+
+  }catch(err){
+    console.log(err);
+    res.status(500).json({error:"Erro login"});
+  }
+});
+
 /* ================= PRODUTOS ================= */
 
 app.get("/products",authenticateToken, async(req,res)=>{
-  const result = await pool.query("SELECT * FROM products ORDER BY id DESC");
+  const result = await pool.query(
+    "SELECT * FROM products ORDER BY id DESC"
+  );
   res.json(result.rows);
 });
 
@@ -145,6 +199,35 @@ app.delete("/products/:id",authenticateToken, async(req,res)=>{
   res.json({success:true});
 });
 
+/* ================= FORNECEDORES ================= */
+
+app.get("/suppliers",authenticateToken, async(req,res)=>{
+  const r = await pool.query(
+    "SELECT * FROM suppliers ORDER BY nome"
+  );
+  res.json(r.rows);
+});
+
+app.post("/suppliers",authenticateToken, async(req,res)=>{
+  try{
+    await pool.query(
+      "INSERT INTO suppliers(nome) VALUES($1)",
+      [req.body.nome]
+    );
+    res.json({success:true});
+  }catch{
+    res.status(400).json({error:"Fornecedor já existe"});
+  }
+});
+
+app.delete("/suppliers/:id",authenticateToken, async(req,res)=>{
+  await pool.query(
+    "DELETE FROM suppliers WHERE id=$1",
+    [req.params.id]
+  );
+  res.json({success:true});
+});
+
 /* ================= EXCEL IMPORT ================= */
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -155,6 +238,9 @@ app.post("/products/import-excel",
  async(req,res)=>{
 
  try{
+
+   if(!req.file)
+    return res.status(400).json({error:"Arquivo não enviado"});
 
    const workbook = XLSX.read(req.file.buffer,{type:"buffer"});
    const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -222,6 +308,7 @@ app.post("/products/import-excel",
  }
 
 });
+
 /* ================= ROOT ================= */
 
 app.get("/", (req,res)=>{
@@ -233,7 +320,3 @@ app.get("/", (req,res)=>{
 app.listen(process.env.PORT||3000,()=>{
  console.log("Servidor rodando");
 });
- 
-
-
- 

@@ -16,13 +16,8 @@
 <div class="actions">
   <button class="btn blue" onclick="voltarDashboard()">Voltar</button>
   <button class="btn green" onclick="abrirModal()">Gerenciar Fornecedores</button>
+  <button class="btn purple" onclick="importarExcel()">Importar Excel</button>
 
-  <!-- 🔥 NOVO BOTÃO -->
-  <button class="btn purple" onclick="importarExcel()">
-    Importar Excel
-  </button>
-
-  <!-- input escondido -->
   <input type="file" id="excelFile" accept=".xlsx,.xls"
          style="display:none"
          onchange="lerExcel(event)">
@@ -30,30 +25,11 @@
 
 <div class="form-grid">
 
-<div>
-<label>Código</label>
-<input id="codigo" readonly>
-</div>
-
-<div>
-<label>Nome</label>
-<input id="nome">
-</div>
-
-<div>
-<label>Fornecedor</label>
-<select id="fornecedor"></select>
-</div>
-
-<div>
-<label>SKU</label>
-<input id="sku">
-</div>
-
-<div>
-<label>Cor</label>
-<input id="cor">
-</div>
+<div><label>Código</label><input id="codigo" readonly></div>
+<div><label>Nome</label><input id="nome"></div>
+<div><label>Fornecedor</label><select id="fornecedor"></select></div>
+<div><label>SKU</label><input id="sku"></div>
+<div><label>Cor</label><input id="cor"></div>
 
 <div>
 <label>Tamanho</label>
@@ -68,35 +44,12 @@
 </select>
 </div>
 
-<div>
-<label>SKU Completo</label>
-<input id="skuCompleto" disabled>
-</div>
-
-<div>
-<label>Estoque</label>
-<input id="estoque" type="number">
-</div>
-
-<div>
-<label>Preço Custo</label>
-<input id="custo">
-</div>
-
-<div>
-<label>Preço Venda</label>
-<input id="venda">
-</div>
-
-<div>
-<label>Variação %</label>
-<input id="variacao" readonly>
-</div>
-
-<div>
-<label>NCM</label>
-<input id="barcode">
-</div>
+<div><label>SKU Completo</label><input id="skuCompleto" disabled></div>
+<div><label>Estoque</label><input id="estoque" type="number"></div>
+<div><label>Preço Custo</label><input id="custo"></div>
+<div><label>Preço Venda</label><input id="venda"></div>
+<div><label>Variação %</label><input id="variacao" readonly></div>
+<div><label>NCM</label><input id="barcode"></div>
 
 </div>
 
@@ -104,100 +57,56 @@
 
 <input class="search" placeholder="Buscar..." onkeyup="buscar(this.value)">
 
-<!-- 🔥 FILTRO POR COLUNA (COLOCAR AQUI) -->
 <div style="display:flex; gap:10px; margin-bottom:10px;">
-  <select id="colunaBusca" class="search" style="max-width:220px;">
-    <option value="todas">Todas as colunas</option>
-    <option value="codigo">Código</option>
-    <option value="nome">Nome</option>
-    <option value="fornecedor">Fornecedor</option>
-  </select>
+<select id="colunaBusca" class="search" style="max-width:220px;">
+<option value="todas">Todas as colunas</option>
+<option value="codigo">Código</option>
+<option value="nome">Nome</option>
+<option value="fornecedor">Fornecedor</option>
+</select>
 </div>
 
 <table class="tabela">
 <thead>
 <tr>
-<th onclick="ordenarTabela(0)">Código ⬍</th>
-<th onclick="ordenarTabela(1)">Nome ⬍</th>
-<th onclick="ordenarTabela(2)">Fornecedor ⬍</th>
-<th onclick="ordenarTabela(3)">SKU ⬍</th>
-<th onclick="ordenarTabela(4)">Cor ⬍</th>
-<th onclick="ordenarTabela(5)">Tamanho ⬍</th>
+<th>Código</th>
+<th>Nome</th>
+<th>Fornecedor</th>
+<th>SKU</th>
+<th>Cor</th>
+<th>Tamanho</th>
 <th>SKU Completo</th>
-<th onclick="ordenarTabela(7)">Estoque ⬍</th>
-<th onclick="ordenarTabela(8)">Custo ⬍</th>
-<th onclick="ordenarTabela(9)">Venda ⬍</th>
+<th>Estoque</th>
+<th>Custo</th>
+<th>Venda</th>
 <th>Variação</th>
 <th>NCM</th>
-<th onclick="ordenarTabela(12)">Ano ⬍</th>
+<th>Ano</th>
 <th>Ação</th>
 </tr>
 </thead>
-
 <tbody id="lista"></tbody>
 </table>
 
 </section>
 </main>
 
-<!-- MODAL FORNECEDORES -->
-<div class="modal-bg" id="modalFornecedor">
-<div class="modal">
-
-<h3>Gerenciar Fornecedores</h3>
-
-<div style="display:flex; gap:10px; margin-bottom:20px;">
-<input id="novoFornecedor" placeholder="Novo fornecedor">
-<button class="btn green" onclick="adicionarFornecedor()">Salvar</button>
-</div>
-
-<table class="tabela">
-<thead>
-<tr>
-<th>Fornecedor</th>
-<th>Ação</th>
-</tr>
-</thead>
-<tbody id="listaFornecedores"></tbody>
-</table>
-
-<button class="btn-close" onclick="fecharModal()">Fechar</button>
-
-</div>
-</div>
-
 <script>
 
 const token = localStorage.getItem("token");
 if(!token) location.href="login.html";
 
-/* ================= MAIÚSCULO ================= */
-document.addEventListener("input", e=>{
-
- if(e.target.hasAttribute("contenteditable")){
-   e.target.innerText = e.target.innerText.toUpperCase();
- }
-
- if(e.target.tagName==="INPUT"){
-   if(!["custo","venda"].includes(e.target.id)){
-     e.target.value = e.target.value.toUpperCase();
-   }
- }
-
-});
-
 /* ================= SKU COMPLETO ================= */
-function atualizarSKU(){
- skuCompleto.value =
- [sku.value,cor.value,tamanho.value]
- .filter(Boolean)
- .join("-");
-}
-sku.oninput=atualizarSKU;
-cor.oninput=atualizarSKU;
-tamanho.onchange=atualizarSKU;
 
-/* ================= CARREGAR PRODUTOS ================= */
+function atualizarSKU(){
+  skuCompleto.value =
+  [sku.value,cor.value,tamanho.value]
+  .filter(Boolean).join("-");
+}
+
+sku.oninput = atualizarSKU;
+cor.oninput = atualizarSKU;
+tamanho.onchange = atualizarSKU;
 
 /* ================= CARREGAR PRODUTOS ================= */
 
@@ -208,64 +117,66 @@ async function carregarProdutos(){
   });
 
   const produtos = await res.json();
-
-  lista.innerHTML = "";
+  lista.innerHTML="";
 
   produtos.forEach(p=>{
 
-    lista.innerHTML += `
+    lista.innerHTML+=`
     <tr data-id="${p.id}">
 
-      <td>${p.codigo}</td>
+    <td>${p.codigo}</td>
+    <td contenteditable data-campo="nome">${p.nome||""}</td>
+    <td contenteditable data-campo="fornecedor">${p.fornecedor||""}</td>
+    <td contenteditable data-campo="sku">${p.sku||""}</td>
+    <td contenteditable data-campo="cor">${p.cor||""}</td>
+    <td contenteditable data-campo="tamanho">${p.tamanho||""}</td>
 
-      <td contenteditable data-campo="nome">${p.nome||""}</td>
+    <td class="skuFull">
+    ${[p.sku,p.cor,p.tamanho].filter(Boolean).join("-")}
+    </td>
 
-      <td contenteditable data-campo="fornecedor">${p.fornecedor||""}</td>
+    <td contenteditable data-campo="estoque">${p.estoque||0}</td>
 
-      <td contenteditable data-campo="sku">${p.sku||""}</td>
+    <td contenteditable data-campo="preco_custo">
+    ${formatarMoeda(p.preco_custo)}
+    </td>
 
-      <td contenteditable data-campo="cor">${p.cor||""}</td>
+    <td contenteditable data-campo="preco_venda">
+    ${formatarMoeda(p.preco_venda)}
+    </td>
 
-      <td contenteditable data-campo="tamanho">${p.tamanho||""}</td>
+    <td class="variacao">
+    ${calcularVariacaoTabela(p.preco_custo,p.preco_venda)}
+    </td>
 
-      <td class="skuFull">
-      ${[p.sku,p.cor,p.tamanho].filter(Boolean).join("-")}
-      </td>
+    <td contenteditable data-campo="barcode">${p.barcode||""}</td>
+    <td contenteditable data-campo="ano">${p.ano||""}</td>
 
-      <td contenteditable data-campo="estoque">${p.estoque||0}</td>
-
-      <td contenteditable data-campo="preco_custo">
-      ${formatarMoeda(p.preco_custo)}
-      </td>
-
-      <td contenteditable data-campo="preco_venda">
-      ${formatarMoeda(p.preco_venda)}
-      </td>
-
-      <td class="variacao">
-      ${calcularVariacaoTabela(p.preco_custo,p.preco_venda)}
-      </td>
-
-      <td contenteditable data-campo="barcode">${p.barcode||""}</td>
-
-      <td contenteditable data-campo="ano">${p.ano||""}</td>
-
-      <td>
-        <button onclick="excluirProduto(${p.id})">🗑</button>
-      </td>
+    <td><button onclick="excluirProduto(${p.id})">🗑</button></td>
 
     </tr>`;
   });
 }
 
+/* ================= AUTO SAVE INLINE ================= */
 
+document.addEventListener("input", e=>{
+
+ if(!e.target.hasAttribute("contenteditable")) return;
+
+ clearTimeout(window.saveTimer);
+
+ window.saveTimer = setTimeout(()=>{
+   salvarInline(e.target);
+ },500);
+
+});
 
 async function salvarInline(el){
 
  const row = el.closest("tr");
  const id = row.dataset.id;
  const campo = el.dataset.campo;
-
  let valor = el.innerText.trim();
 
  if(campo==="preco_custo" || campo==="preco_venda"){
@@ -273,7 +184,7 @@ async function salvarInline(el){
    el.innerText = formatarMoeda(valor);
  }
 
- if(campo==="estoque"){
+ if(campo==="estoque" || campo==="ano"){
    valor = parseInt(valor)||0;
  }
 
@@ -287,10 +198,7 @@ async function salvarInline(el){
  });
 
  el.style.background="#bbf7d0";
-
- setTimeout(()=>{
-   el.style.background="";
- },500);
+ setTimeout(()=> el.style.background="",500);
 
  recalcularLinha(row);
 }
@@ -300,22 +208,20 @@ async function salvarInline(el){
 function recalcularLinha(row){
 
  const custo = limparMoeda(
-   row.querySelector('[data-campo="preco_custo"]').innerText
- );
+ row.querySelector('[data-campo="preco_custo"]').innerText);
 
  const venda = limparMoeda(
-   row.querySelector('[data-campo="preco_venda"]').innerText
- );
+ row.querySelector('[data-campo="preco_venda"]').innerText);
 
  row.querySelector(".variacao").innerText =
-   calcularVariacaoTabela(custo,venda);
+ calcularVariacaoTabela(custo,venda);
 
  row.querySelector(".skuFull").innerText =
-   [
-    row.querySelector('[data-campo="sku"]').innerText,
-    row.querySelector('[data-campo="cor"]').innerText,
-    row.querySelector('[data-campo="tamanho"]').innerText
-   ].filter(Boolean).join("-");
+ [
+ row.querySelector('[data-campo="sku"]').innerText,
+ row.querySelector('[data-campo="cor"]').innerText,
+ row.querySelector('[data-campo="tamanho"]').innerText
+ ].filter(Boolean).join("-");
 }
 
 function calcularVariacaoTabela(c,v){
@@ -326,34 +232,15 @@ function calcularVariacaoTabela(c,v){
 /* ================= MOEDA ================= */
 
 function limparMoeda(v){
- if(typeof v==="number") return v;
  return parseFloat(String(v).replace(/[^\d]/g,''))/100 || 0;
 }
 
 function formatarMoeda(v){
  return Number(v||0).toLocaleString("pt-BR",{
-  style:"currency",
-  currency:"BRL"
+ style:"currency",
+ currency:"BRL"
  });
 }
-
-function formatarMoedaInput(input){
-
- let valor=input.value.replace(/\D/g,'');
-
- if(!valor){
-   input.value="";
-   return;
- }
-
- valor=(valor/100).toFixed(2);
- valor=valor.replace(".",",");
- valor=valor.replace(/\B(?=(\d{3})+(?!\d))/g,".");
-
- input.value="R$ "+valor;
-}
-const custo = document.getElementById("custo");
-const venda = document.getElementById("venda");
 
 custo.addEventListener("input", ()=>{
  formatarMoedaInput(custo);
@@ -365,18 +252,20 @@ venda.addEventListener("input", ()=>{
  calcularVariacao();
 });
 
-function calcularVariacao(){
+function formatarMoedaInput(input){
+ let valor=input.value.replace(/\D/g,'');
+ if(!valor){ input.value=""; return; }
+ valor=(valor/100).toFixed(2);
+ valor=valor.replace(".",",");
+ valor=valor.replace(/\B(?=(\d{3})+(?!\d))/g,".");
+ input.value="R$ "+valor;
+}
 
+function calcularVariacao(){
  const c=limparMoeda(custo.value);
  const v=limparMoeda(venda.value);
-
- if(!c || !v){
-   variacao.value="";
-   return;
- }
-
- variacao.value =
-   (((v-c)/c)*100).toFixed(2)+"%";
+ if(!c||!v){ variacao.value=""; return; }
+ variacao.value=(((v-c)/c)*100).toFixed(2)+"%";
 }
 
 /* ================= CRUD ================= */
@@ -413,150 +302,72 @@ async function salvar(){
 
 async function excluirProduto(id){
  await fetch("/products/"+id,{
-  method:"DELETE",
-  headers:{Authorization:"Bearer "+token}
+ method:"DELETE",
+ headers:{Authorization:"Bearer "+token}
  });
  carregarProdutos();
 }
 
-/* ================= UTIL ================= */
-
-function limparFormulario(){
- nome.value="";
- sku.value="";
- cor.value="";
- tamanho.value="";
- skuCompleto.value="";
- estoque.value="";
- custo.value="";
- venda.value="";
- variacao.value="";
- barcode.value="";
-}
-
-async function gerarCodigoAutomatico(){
- const res=await fetch("/products/next-code",{
-  headers:{Authorization:"Bearer "+token}
- });
- const data=await res.json();
- codigo.value=data.codigo;
-}
-
-/* ================= FORNECEDORES ================= */
-
-async function carregarFornecedores(){
-
- const res=await fetch("/suppliers",{
-  headers:{Authorization:"Bearer "+token}
- });
-
- const fornecedores=await res.json();
-
- fornecedor.innerHTML="<option value=''>Selecione</option>";
- listaFornecedores.innerHTML="";
-
- fornecedores.forEach(f=>{
-  fornecedor.innerHTML += `<option>${f.nome}</option>`;
-  listaFornecedores.innerHTML += `
-   <tr>
-    <td>${f.nome}</td>
-    <td><button onclick="excluirFornecedor(${f.id})">🗑</button></td>
-   </tr>`;
- });
-}
-
-async function adicionarFornecedor(){
-
- if(!novoFornecedor.value) return;
-
- await fetch("/suppliers",{
-  method:"POST",
-  headers:{
-   "Content-Type":"application/json",
-   Authorization:"Bearer "+token
-  },
-  body:JSON.stringify({nome:novoFornecedor.value})
- });
-
- novoFornecedor.value="";
- carregarFornecedores();
-}
-
-async function excluirFornecedor(id){
-
- await fetch("/suppliers/"+id,{
-  method:"DELETE",
-  headers:{Authorization:"Bearer "+token}
- });
-
- carregarFornecedores();
-}
-
-/* ================= MODAL ================= */
-
-function abrirModal(){
- document.getElementById("modalFornecedor").style.display="flex";
-}
-
-function fecharModal(){
- document.getElementById("modalFornecedor").style.display="none";
-}
-
+/* ================= BUSCA ================= */
 
 function buscar(valor){
 
-  const termo = valor.toUpperCase();
-  const coluna = document.getElementById("colunaBusca").value;
+ const termo=valor.toUpperCase();
+ const coluna=document.getElementById("colunaBusca").value;
 
-  document.querySelectorAll("#lista tr").forEach(row=>{
+ document.querySelectorAll("#lista tr").forEach(row=>{
 
-    const codigo = row.children[0].innerText.toUpperCase();
-    const nome = row.children[1].innerText.toUpperCase();
-    const fornecedor = row.children[2].innerText.toUpperCase();
+ const codigo=row.children[0].innerText.toUpperCase();
+ const nome=row.children[1].innerText.toUpperCase();
+ const fornecedor=row.children[2].innerText.toUpperCase();
 
-    let texto = "";
+ let texto="";
 
-    if(coluna==="codigo") texto = codigo;
-    else if(coluna==="nome") texto = nome;
-    else if(coluna==="fornecedor") texto = fornecedor;
-    else texto = row.innerText.toUpperCase();
+ if(coluna==="codigo") texto=codigo;
+ else if(coluna==="nome") texto=nome;
+ else if(coluna==="fornecedor") texto=fornecedor;
+ else texto=row.innerText.toUpperCase();
 
-    row.style.display =
-      texto.includes(termo) ? "" : "none";
-  });
+ row.style.display=
+ texto.includes(termo)?"":"none";
+ });
 }
+
+/* ================= IMPORTAR EXCEL ================= */
+
 function importarExcel(){
-document.getElementById("excelFile").value = file;}
+ document.getElementById("excelFile").click();
+}
 
 async function lerExcel(event){
 
-  const file = event.target.files[0];
-  if(!file) return;
+ const file=event.target.files[0];
+ if(!file) return;
 
-  const formData = new FormData();
-  formData.append("file", file);
+ const formData=new FormData();
+ formData.append("file",file);
 
-  const res = await fetch("/products/import-excel",{
-    method:"POST",
-    headers:{
-      Authorization:"Bearer "+token
-    },
-    body: formData
-  });
+ const res=await fetch("/products/import-excel",{
+ method:"POST",
+ headers:{Authorization:"Bearer "+token},
+ body:formData
+ });
 
-  if(res.ok){
-    alert("Importado com sucesso!");
-    carregarProdutos();
-  }else{
-    alert("Erro ao importar");
-  }
+ if(res.ok){
+ alert("Importado com sucesso!");
+ carregarProdutos();
+ }else{
+ alert("Erro ao importar");
+ }
+
+ event.target.value="";
 }
 
 /* ================= INIT ================= */
 
 window.onload=()=>{
  carregarProdutos();
- carregarFornecedores();
+carregarFornecedores();
  gerarCodigoAutomatico();
 };
 
