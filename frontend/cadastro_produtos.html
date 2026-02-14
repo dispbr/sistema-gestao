@@ -125,7 +125,7 @@ onkeyup="buscar(this.value)">
 
 <div style="display:flex;gap:10px;margin-top:15px;">
   <button class="btn red" onclick="confirmarExcluirTudo()">
-    EXCLUIR TUDO
+    Excluir Tudo
   </button>
 
   <button class="btn blue" onclick="fecharExcluirTudo()">
@@ -148,7 +148,7 @@ if(!token) location.href="login.html";
 /* ================= MAIUSCULO ================= */
 document.addEventListener("input",e=>{
  if(e.target.tagName==="INPUT" &&
- !["custo","venda"].includes(e.target.id)){
+ !["custo","venda","userDelete","passDelete"].includes(e.target.id)){
    e.target.value=e.target.value.toUpperCase();
  }
 });
