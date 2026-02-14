@@ -16,23 +16,33 @@
 <div class="actions">
   <button class="btn blue" onclick="voltarDashboard()">Voltar</button>
   <button class="btn green" onclick="abrirModal()">Gerenciar Fornecedores</button>
-  <button class="btn red" onclick="excluirTudo()">Excluir Tudo</button>
+  <button class="btn red" onclick="abrirPopupExcluir()">Excluir Tudo</button>
   <button class="btn purple" onclick="importarExcel()">Importar Excel</button>
 
   <input type="file" id="excelFile" accept=".xlsx,.xls"
          style="display:none"
          onchange="lerExcel(event)">
 </div>
+<!-- PROGRESS IMPORT -->
+<div id="importProgress" style="
+display:none;
+margin-top:10px;
+background:#e5e7eb;
+border-radius:8px;
+overflow:hidden;
+height:20px;
+">
 
-<div id="progressBox" style="display:none;margin-top:10px;">
-  <div style="background:#ddd;height:20px;border-radius:6px;">
-    <div id="progressBar"
-         style="height:20px;width:0%;background:#22c55e;border-radius:6px;">
-    </div>
-  </div>
-  <small id="progressText">0%</small>
+<div id="importBar" style="
+height:100%;
+width:0%;
+background:#22c55e;
+transition:0.3s;
+"></div>
+
 </div>
 
+<div id="importText" style="font-size:13px;margin-top:5px;"></div>
 
 <div class="form-grid">
 
@@ -183,63 +193,77 @@ document.addEventListener("input", e=>{
 
 });
 
+
 async function salvarInline(el){
 
- recalcularLinha(row);
-  const row = el.closest("tr");
- const id = row.dataset.id;
- const campo = el.dataset.campo;
- let valor = el.innerText.trim();
+  const row   = el.closest("tr");
+  const id    = row.dataset.id;
+  const campo = el.dataset.campo;
 
- if(campo==="preco_custo" || campo==="preco_venda"){
-   valor = limparMoeda(valor);
-   el.innerText = formatarMoeda(valor);
- }
+  let valor = el.innerText.trim();
 
- if(campo==="estoque" || campo==="ano"){
-   valor = parseInt(valor)||0;
- }
+  /* ===== PREÇO CUSTO / VENDA ===== */
+  if(campo==="preco_custo" || campo==="preco_venda"){
 
- await fetch(`/products/${id}/campo`,{
-   method:"PUT",
-   headers:{
-     "Content-Type":"application/json",
-     Authorization:"Bearer "+token
-   },
-   body:JSON.stringify({campo,valor})
- });
+    // converte para número
+    valor = limparMoeda(valor);
 
- el.style.background="#bbf7d0";
- setTimeout(()=> el.style.background="",500);
+    // reaplica máscara R$
+    el.innerText = formatarMoeda(valor);
+  }
 
- }
+  /* ===== ESTOQUE ===== */
+  if(campo==="estoque"){
+    valor = parseInt(valor) || 0;
+  }
+
+  /* ===== ANO ===== */
+  if(campo==="ano"){
+    valor = parseInt(valor) || null;
+  }
+
+  /* ===== SALVAR NO BANCO ===== */
+  await fetch(`/products/${id}/campo`,{
+    method:"PUT",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer "+token
+    },
+    body:JSON.stringify({campo,valor})
+  });
+
+  /* ===== FEEDBACK VERDE ===== */
+  el.style.background="#bbf7d0";
+  setTimeout(()=>el.style.background="",500);
+
+  /* ===== RECALCULAR LINHA ===== */
+  recalcularLinha(row);
+}
 
 /* ================= VARIAÇÃO ================= */
 
 function recalcularLinha(row){
 
- const custo = limparMoeda(
-   row.querySelector('[data-campo="preco_custo"]').innerText
- );
+  const custo = limparMoeda(
+    row.querySelector('[data-campo="preco_custo"]').innerText
+  );
 
- const venda = limparMoeda(
-   row.querySelector('[data-campo="preco_venda"]').innerText
- );
+  const venda = limparMoeda(
+    row.querySelector('[data-campo="preco_venda"]').innerText
+  );
 
- if(!custo || custo===0){
-   row.querySelector(".variacao").innerText = "0%";
-   return;
- }
+  /* recalcula variação */
+  row.querySelector(".variacao").innerText =
+    calcularVariacaoTabela(custo,venda);
 
- row.querySelector(".variacao").innerText =
-   (((venda-custo)/custo)*100).toFixed(2)+"%";
+  /* atualiza SKU completo */
+  row.querySelector(".skuFull").innerText =
+    [
+      row.querySelector('[data-campo="sku"]').innerText,
+      row.querySelector('[data-campo="cor"]').innerText,
+      row.querySelector('[data-campo="tamanho"]').innerText
+    ].filter(Boolean).join("-");
 }
-
-function calcularVariacaoTabela(c,v){
- if(!c || c===0) return "0%";
- return (((v-c)/c)*100).toFixed(2)+"%";
-}
-
 /* ================= MOEDA ================= */
 
 function limparMoeda(v){
@@ -357,36 +381,39 @@ async function lerExcel(event){
   const file = event.target.files[0];
   if(!file) return;
 
-  progressBox.style.display="block";
-
   const formData = new FormData();
   formData.append("file", file);
 
-  const xhr = new XMLHttpRequest();
+  document.getElementById("importProgress").style.display="block";
+  document.getElementById("importBar").style.width="0%";
+  document.getElementById("importText").innerText="Importando...";
 
-  xhr.open("POST","/products/import-excel");
+  const res = await fetch("/products/import-excel",{
+    method:"POST",
+    headers:{
+      Authorization:"Bearer "+token
+    },
+    body:formData
+  });
 
-  xhr.setRequestHeader("Authorization","Bearer "+token);
+  const data = await res.json();
 
-  xhr.upload.onprogress = function(e){
+  if(data.success){
 
-    if(e.lengthComputable){
-      const pct = Math.round((e.loaded/e.total)*100);
-
-      progressBar.style.width = pct+"%";
-      progressText.innerText = pct+"%";
-    }
-  };
-
-  xhr.onload = function(){
-
-    progressBar.style.width="100%";
-    progressText.innerText="Concluído";
+    document.getElementById("importBar").style.width="100%";
+    document.getElementById("importText").innerText =
+      "✔ "+data.total+" produtos importados";
 
     carregarProdutos();
-  };
 
-  xhr.send(formData);
+  }else{
+    alert("Erro ao importar");
+  }
+
+  setTimeout(()=>{
+    document.getElementById("importProgress").style.display="none";
+  },2000);
+
 }
   
 async function excluirTudo(){
@@ -414,19 +441,69 @@ async function excluirTudo(){
     alert(data.error || "Erro");
   }
 }
-function abrirModal(){
-  const modal = document.getElementById("modalFornecedor");
-  if(modal){
-    modal.style.display = "flex";
+
+
+
+
+
+function abrirPopupExcluir(){
+  document.getElementById("popupExcluir").style.display="flex";
+}
+
+function fecharPopupExcluir(){
+  document.getElementById("popupExcluir").style.display="none";
+}
+
+/* EXCLUIR TUDO */
+async function confirmarExcluirTudo(){
+
+  const username =
+    document.getElementById("loginExcluir").value;
+
+  const password =
+    document.getElementById("senhaExcluir").value;
+
+  if(!username || !password){
+    alert("Preencha usuário e senha");
+    return;
+  }
+
+  const res = await fetch("/products/delete-all",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer "+token
+    },
+    body:JSON.stringify({username,password})
+  });
+
+  const data = await res.json();
+
+  if(data.success){
+    alert("Todos produtos removidos ✔");
+    fecharPopupExcluir();
+    carregarProdutos();
+  }else{
+    alert("Login inválido");
   }
 }
 
-function fecharModal(){
-  const modal = document.getElementById("modalFornecedor");
-  if(modal){
-    modal.style.display = "none";
-  }
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 function voltarDashboard(){
   window.location.href = "dashboard.html";
@@ -440,21 +517,38 @@ carregarFornecedores();
  gerarCodigoAutomatico();
 };
 
+
+
+
+
 </script>
 
-<div class="modal-bg" id="modalDeleteAll" style="display:none;">
-<div class="modal">
 
-<h3>🔒 Confirmar Exclusão Total</h3>
 
-<input id="deleteUser" placeholder="Usuário">
-<input id="deletePass" type="password" placeholder="Senha">
+<div id="popupExcluir" class="modal-bg" style="display:none;">
+  <div class="modal">
 
-<div style="margin-top:15px;display:flex;gap:10px;">
-  <button class="btn red" onclick="confirmarExcluirTudo()">Excluir Tudo</button>
-  <button class="btn" onclick="fecharDeleteAll()">Cancelar</button>
-</div>
+    <h3>⚠️ Confirmação de Segurança</h3>
+    <p>Digite usuário e senha para excluir TODOS os produtos</p>
 
+    <input id="loginExcluir" placeholder="Usuário"
+           style="margin-bottom:10px; width:100%;">
+
+    <input id="senhaExcluir" type="password"
+           placeholder="Senha"
+           style="margin-bottom:15px; width:100%;">
+
+    <div style="display:flex; gap:10px;">
+      <button class="btn red" onclick="confirmarExcluirTudo()">
+        Excluir Tudo
+      </button>
+
+      <button class="btn blue" onclick="fecharPopupExcluir()">
+        Cancelar
+      </button>
+    </div>
+
+  </div>
 </div>
 </div>
 

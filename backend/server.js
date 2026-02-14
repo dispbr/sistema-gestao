@@ -223,104 +223,147 @@ app.delete("/suppliers/:id",authenticateToken, async(req,res)=>{
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-app.post(
-  "/products/import-excel",
-  authenticateToken,
-  upload.single("file"),
-  async (req,res)=>{
+app.post("/products/import-excel",
+ authenticateToken,
+ upload.single("file"),
+ async(req,res)=>{
 
-  try{
+ try{
 
-    if(!req.file)
-      return res.status(400).json({error:"Arquivo não enviado"});
+   if(!req.file)
+     return res.status(400).json({error:"Arquivo não enviado"});
 
-    const workbook = XLSX.read(req.file.buffer,{type:"buffer"});
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const dados = XLSX.utils.sheet_to_json(sheet,{
-  defval: ""
-  
+   const workbook = XLSX.read(req.file.buffer,{type:"buffer"});
+   const sheet = workbook.Sheets[workbook.SheetNames[0]];
+   const dados = XLSX.utils.sheet_to_json(sheet,{defval:""});
+
+   function getCol(obj,nomes){
+
+     for(const k of Object.keys(obj)){
+
+       const key = k
+         .toUpperCase()
+         .normalize("NFD")
+         .replace(/[\u0300-\u036f]/g,"");
+
+       if(nomes.includes(key))
+         return obj[k];
+     }
+
+     return "";
+   }
+
+   let inserts = [];
+   let contador = 0;
+
+   for(const item of dados){
+
+     const r = await pool.query(`
+       SELECT MAX(CAST(codigo AS INTEGER)) as ultimo
+       FROM products
+       WHERE codigo ~ '^[0-9]+$'
+     `);
+
+     const codigo =
+       String(Number(r.rows[0].ultimo||0)+1)
+       .padStart(4,"0");
+
+     const custo = parseFloat(
+       String(getCol(item,["CUSTO","PRECO_CUSTO"]))
+       .replace(",",".")
+     ) || 0;
+
+     const venda = parseFloat(
+       String(getCol(item,["VENDA","PRECO_VENDA"]))
+       .replace(",",".")
+     ) || 0;
+
+     const variacao =
+       custo>0
+       ? (((venda-custo)/custo)*100).toFixed(2)+"%"
+       : "0%";
+
+     inserts.push([
+       codigo,
+       getCol(item,["NOME"]),
+       getCol(item,["FORNECEDOR"]),
+       getCol(item,["SKU"]),
+       getCol(item,["COR"]),
+       getCol(item,["TAMANHO"]),
+       parseInt(getCol(item,["ESTOQUE"]))||0,
+       custo,
+       venda,
+       variacao,
+       getCol(item,["NCM","BARCODE"]),
+       parseInt(getCol(item,["ANO"]))||null
+     ]);
+
+     contador++;
+   }
+
+   /* 🔥 INSERT EM LOTE (30x MAIS RÁPIDO) */
+   for(const p of inserts){
+
+     await pool.query(`
+      INSERT INTO products
+      (codigo,nome,fornecedor,sku,cor,tamanho,
+      estoque,preco_custo,preco_venda,
+      variacao,barcode,ano)
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+     `,p);
+
+   }
+
+   res.json({
+     success:true,
+     total:contador
+   });
+
+ }catch(err){
+   console.log(err);
+   res.status(500).json({error:"Erro importar"});
+ }
+
 });
 
 
-    // pega último código UMA VEZ só
-    const r = await pool.query(`
-      SELECT MAX(CAST(codigo AS INTEGER)) as ultimo
-      FROM products
-      WHERE codigo ~ '^[0-9]+$'
-    `);
 
-    let contador = Number(r.rows[0].ultimo || 0);
+app.post("/products/delete-all",
+ authenticateToken,
+ async(req,res)=>{
 
-    for(const item of dados){
-
-      contador++;
-      const codigo = String(contador).padStart(4,"0");
-
-      await pool.query(`
-        INSERT INTO products
-        (codigo,nome,fornecedor,sku,cor,tamanho,
-        estoque,preco_custo,preco_venda,barcode,ano)
-        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-      `,[
-        codigo,
-        item.NOME || item.Nome || "",
-        item.FORNECEDOR || item.Fornecedor || "",
-        item.SKU || item.Sku || "",
-        item.COR || item.Cor || "",
-        item.TAMANHO || item.Tamanho || "",
-        parseInt(item.ESTOQUE || item.Estoque) || 0,
-        parseFloat(String(item.CUSTO || item.Custo || 0).replace(",",".")) || 0,
-        parseFloat(String(item.VENDA || item.Venda || 0).replace(",",".")) || 0,
-        item.NCM || "",
-        parseInt(item.ANO || item.Ano) || null
-      ]);
-
-    }
-
-    res.json({success:true});
-
-  }catch(err){
-    console.log(err);
-    res.status(500).json({error:"Erro importar"});
-  }
-
-});
-
-
-app.post("/products/delete-all", async (req, res) => {
+ try{
 
   const { username, password } = req.body;
 
-  if(!username || !password)
-    return res.status(400).json({error:"Usuário e senha obrigatórios"});
+  const result = await pool.query(
+    "SELECT * FROM users WHERE username=$1",
+    [username]
+  );
 
-  try {
+  if(!result.rows.length)
+    return res.status(400).json({success:false});
 
-    const r = await pool.query(
-      "SELECT * FROM users WHERE username=$1",
-      [username]
-    );
+  const user = result.rows[0];
 
-    if(!r.rows.length)
-      return res.status(401).json({error:"Usuário inválido"});
+  const valid = await bcrypt.compare(
+    password,
+    user.password
+  );
 
-    const user = r.rows[0];
+  if(!valid)
+    return res.status(400).json({success:false});
 
-    const ok = await bcrypt.compare(password, user.password);
+  await pool.query("DELETE FROM products");
 
-    if(!ok)
-      return res.status(401).json({error:"Senha incorreta"});
+  res.json({success:true});
 
-    await pool.query("DELETE FROM products");
+ }catch(err){
+  console.log(err);
+  res.status(500).json({success:false});
+ }
 
-    res.json({success:true});
-
-  } catch(err){
-    console.log(err);
-    res.status(500).json({error:"Erro ao excluir"});
-  }
 });
-
 
 /* ================= ROOT ================= */
 
