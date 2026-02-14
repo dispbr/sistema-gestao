@@ -222,7 +222,18 @@ app.post("/products/import-excel",
  }
 
 });
+/* ================= ROOT ================= */
+
+app.get("/", (req,res)=>{
+  res.sendFile(path.join(__dirname,"../frontend/login.html"));
+});
+
+/* ================= START ================= */
 
 app.listen(process.env.PORT||3000,()=>{
  console.log("Servidor rodando");
 });
+ 
+
+
+ 

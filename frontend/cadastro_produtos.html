@@ -134,7 +134,6 @@
 </tr>
 </thead>
 
-app.post("/products/import-excel",
 <tbody id="lista"></tbody>
 </table>
 
@@ -527,8 +526,7 @@ function buscar(valor){
   });
 }
 function importarExcel(){
-  document.getElementById("excelFile").click();
-}
+document.getElementById("excelFile").value = file;}
 
 async function lerExcel(event){
 
