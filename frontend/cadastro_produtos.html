@@ -17,9 +17,7 @@
   <button class="btn blue" onclick="voltarDashboard()">Voltar</button>
   <button class="btn green" onclick="abrirModal()">Gerenciar Fornecedores</button>
   <button class="btn purple" onclick="importarExcel()">Importar Excel</button>
-  <button class="btn red" onclick="abrirExcluirTudo()">Excluir Tudo</button>
-  <button class="btn orange" onclick="undoDelete()">↩ Undo Delete</button>
-
+  <button class="btn red" onclick="abrirPopupDelete()">Excluir Tudo</button>
 
   <input type="file" id="excelFile"
     accept=".xlsx,.xls"
@@ -27,8 +25,7 @@
     onchange="lerExcel(event)">
 </div>
 
-
-<div id="progressBox" style="display:none; margin-top:10px;">
+<div id="progressBox" style="display:none;margin-top:10px;">
   <div style="background:#eee;height:20px;border-radius:10px;">
     <div id="progressBar"
       style="height:20px;background:#16a34a;width:0%;border-radius:10px;">
@@ -40,7 +37,6 @@
 
 <input id="codigo" readonly placeholder="Código">
 <input id="nome" placeholder="Nome">
-
 <select id="fornecedor"></select>
 
 <input id="sku" placeholder="SKU">
@@ -60,7 +56,6 @@
 <input id="venda" placeholder="Preço Venda">
 
 <input id="variacao" readonly placeholder="Variação">
-
 <input id="barcode" placeholder="NCM">
 <input id="ano" placeholder="Ano">
 
@@ -68,9 +63,7 @@
 
 <button class="btn-submit" onclick="salvar()">Adicionar Produto</button>
 
-<input class="search"
-placeholder="Buscar..."
-onkeyup="buscar(this.value)">
+<input class="search" placeholder="Buscar..." onkeyup="buscar(this.value)">
 
 <table class="tabela">
 <thead>
@@ -97,120 +90,65 @@ onkeyup="buscar(this.value)">
 </section>
 </main>
 
-<!-- MODAL -->
+<!-- MODAL FORNECEDORES -->
 <div class="modal-bg" id="modalFornecedor">
 <div class="modal">
 <h3>Fornecedores</h3>
-<div class="actions" style="margin-bottom:15px;">
 
-  <input id="novoFornecedor"
-         class="search"
-         placeholder="Nome do fornecedor">
+<input id="novoFornecedor" class="search" placeholder="Nome fornecedor">
 
-  <button class="btn green"
-          onclick="adicionarFornecedor()">
-    Salvar
-  </button>
-
-</div>
+<button class="btn green" onclick="adicionarFornecedor()">Salvar</button>
 
 <table class="tabela">
 <tbody id="listaFornecedores"></tbody>
 </table>
-<button class="btn blue"
-          onclick="fecharModal()">
-    Cancelar
-  </button>
+
+<button class="btn blue" onclick="fecharModal()">Fechar</button>
 </div>
 </div>
 
-
-<div class="modal-bg" id="modalExcluir">
+<!-- POPUP EXCLUIR -->
+<div id="popupDelete" class="modal-bg" style="display:none;">
 <div class="modal">
-
-<h3>⚠️ Confirmação ERP</h3>
+<h3>Excluir TODOS</h3>
 
 <input id="userDelete" placeholder="Usuário">
 <input id="passDelete" type="password" placeholder="Senha">
 
-<div style="display:flex;gap:10px;margin-top:15px;">
-  <button class="btn red" onclick="confirmarExcluirTudo()">
-    Excluir Tudo
-  </button>
-
-  <button class="btn blue" onclick="fecharExcluirTudo()">
-    Cancelar
-  </button>
-</div>
+<button class="btn red" onclick="confirmarExcluirTudo()">Confirmar</button>
+<button class="btn blue" onclick="fecharPopupDelete()">Cancelar</button>
 
 </div>
 </div>
-
-
-
-
 
 <script>
 
 const token = localStorage.getItem("token");
 if(!token) location.href="login.html";
 
-/* ================= MAIUSCULO ================= */
-document.addEventListener("input",e=>{
- if(e.target.tagName==="INPUT" &&
- !["custo","venda","userDelete","passDelete"].includes(e.target.id)){
-   e.target.value=e.target.value.toUpperCase();
- }
-});
-
-/* ================= SKU ================= */
-
-function atualizarSKU(){
- skuCompleto.value=[sku.value,cor.value,tamanho.value]
- .filter(Boolean).join("-");
-}
-sku.oninput=cor.oninput=tamanho.onchange=atualizarSKU;
-
-/* ================= MOEDA ================= */
+/* ================== UTIL ================== */
 
 function limparMoeda(v){
  return parseFloat(String(v).replace(/[^\d]/g,''))/100||0;
 }
 
 function formatarMoeda(v){
- return Number(v||0).toLocaleString("pt-BR",{
- style:"currency",currency:"BRL"});
+ return Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 }
-
-function formatarMoedaInput(inp){
- let v=inp.value.replace(/\D/g,'');
- if(!v){inp.value="";return;}
- v=(v/100).toFixed(2);
- v=v.replace(".",",").replace(/\B(?=(\d{3})+(?!\d))/g,".");
- inp.value="R$ "+v;
-}
-
-custo.oninput=()=>{
- formatarMoedaInput(custo);
- calcularVariacaoForm();
-};
-
-venda.oninput=()=>{
- formatarMoedaInput(venda);
- calcularVariacaoForm();
-};
 
 function calcularVariacaoTabela(c,v){
- if(!c) return "0%";
+ c=Number(c)||0;
+ v=Number(v)||0;
+ if(c<=0) return "0%";
  return (((v-c)/c)*100).toFixed(2)+"%";
 }
 
-function calcularVariacaoForm(){
- const c=limparMoeda(custo.value);
- const v=limparMoeda(venda.value);
- if(!c||!v){variacao.value="";return;}
- variacao.value=calcularVariacaoTabela(c,v);
+/* ================= SKU ================= */
+
+function atualizarSKU(){
+ skuCompleto.value=[sku.value,cor.value,tamanho.value].filter(Boolean).join("-");
 }
+sku.oninput=cor.oninput=tamanho.onchange=atualizarSKU;
 
 /* ================= PRODUTOS ================= */
 
@@ -222,7 +160,6 @@ async function carregarProdutos(){
  lista.innerHTML="";
 
  dados.forEach(p=>{
-
  lista.innerHTML+=`
  <tr data-id="${p.id}">
  <td>${p.codigo}</td>
@@ -243,7 +180,8 @@ async function carregarProdutos(){
  });
 }
 
-/* INLINE AUTO SAVE */
+/* ================= INLINE SAVE ================= */
+
 let t;
 document.addEventListener("input",e=>{
  if(!e.target.hasAttribute("contenteditable")) return;
@@ -265,63 +203,90 @@ async function salvarInline(el){
  }
 
  await fetch(`/products/${id}/campo`,{
-  method:"PUT",
-  headers:{
-   "Content-Type":"application/json",
-   Authorization:"Bearer "+token
-  },
-  body:JSON.stringify({campo,valor})
+ method:"PUT",
+ headers:{
+ "Content-Type":"application/json",
+ Authorization:"Bearer "+token
+ },
+ body:JSON.stringify({campo,valor})
  });
 
  row.querySelector(".variacao").innerText=
  calcularVariacaoTabela(
-   limparMoeda(row.children[8].innerText),
-   limparMoeda(row.children[9].innerText)
+  limparMoeda(row.children[8].innerText),
+  limparMoeda(row.children[9].innerText)
  );
+
+ row.querySelector(".skuFull").innerText=
+ [row.children[3].innerText,row.children[4].innerText,row.children[5].innerText]
+ .filter(Boolean).join("-");
 
  el.style.background="#bbf7d0";
  setTimeout(()=>el.style.background="",500);
 }
 
-/* CREATE */
+/* ================= CRUD ================= */
+
 async function salvar(){
-
- const dados={
-  codigo:codigo.value,
-  nome:nome.value,
-  fornecedor:fornecedor.value,
-  sku:sku.value,
-  cor:cor.value,
-  tamanho:tamanho.value,
-  estoque:estoque.value,
-  preco_custo:limparMoeda(custo.value),
-  preco_venda:limparMoeda(venda.value),
-  variacao:variacao.value,
-  barcode:barcode.value,
-  ano:ano.value
- };
-
  await fetch("/products",{
  method:"POST",
  headers:{
-  "Content-Type":"application/json",
-  Authorization:"Bearer "+token
+ "Content-Type":"application/json",
+ Authorization:"Bearer "+token
  },
- body:JSON.stringify(dados)
+ body:JSON.stringify({
+ codigo:codigo.value,
+ nome:nome.value,
+ fornecedor:fornecedor.value,
+ sku:sku.value,
+ cor:cor.value,
+ tamanho:tamanho.value,
+ estoque:estoque.value,
+ preco_custo:limparMoeda(custo.value),
+ preco_venda:limparMoeda(venda.value),
+ barcode:barcode.value,
+ ano:ano.value
+ })
  });
 
- limparFormulario();
  carregarProdutos();
  gerarCodigoAutomatico();
 }
 
-/* DELETE */
-async function excluirProduto(id){
- await fetch("/products/"+id,{
- method:"DELETE",
- headers:{Authorization:"Bearer "+token}
+/* ================= EXCLUIR TUDO ================= */
+
+function abrirPopupDelete(){
+ popupDelete.style.display="flex";
+}
+
+function fecharPopupDelete(){
+ popupDelete.style.display="none";
+}
+
+/* ================= IMPORTAR ================= */
+
+function importarExcel(){
+ excelFile.click();
+}
+
+async function lerExcel(e){
+
+ const file=e.target.files[0];
+ if(!file) return;
+
+ const formData=new FormData();
+ formData.append("file",file);
+
+ document.getElementById("progressBox").style.display="block";
+
+ await fetch("/products/import-excel",{
+ method:"POST",
+ headers:{Authorization:"Bearer "+token},
+ body:formData
  });
+
  carregarProdutos();
+ alert("Importado ✔");
 }
 
 /* ================= FORNECEDORES ================= */
@@ -337,158 +302,28 @@ async function carregarFornecedores(){
  listaFornecedores.innerHTML="";
 
  dados.forEach(f=>{
- fornecedor.innerHTML+=`<option>${f.nome}</option>`;
- listaFornecedores.innerHTML+=`<tr><td>${f.nome}</td></tr>`;
+  fornecedor.innerHTML+=`<option>${f.nome}</option>`;
+  listaFornecedores.innerHTML+=`<tr><td>${f.nome}</td></tr>`;
  });
 }
 
-async function adicionarFornecedor(){
- if(!novoFornecedor.value) return;
- await fetch("/suppliers",{
- method:"POST",
- headers:{
- "Content-Type":"application/json",
- Authorization:"Bearer "+token
- },
- body:JSON.stringify({nome:novoFornecedor.value})
- });
- novoFornecedor.value="";
- carregarFornecedores();
-}
-
-/* ================= EXCEL ================= */
-
-function importarExcel(){ excelFile.click(); }
-
-async function lerExcel(event){
-
-  const file = event.target.files[0];
-  if(!file) return;
-
-  const formData = new FormData();
-  formData.append("file", file);
-
-  document.getElementById("progressBox").style.display="block";
-
-  fetch("/products/import-excel",{
-    method:"POST",
-    headers:{ Authorization:"Bearer "+token },
-    body: formData
-  });
-
-  const timer = setInterval(async()=>{
-
-    const r = await fetch("/products/import-progress",{
-      headers:{ Authorization:"Bearer "+token }
-    });
-
-    const p = await r.json();
-
-    if(p.total===0) return;
-
-    const percent = (p.atual/p.total)*100;
-
-    document.getElementById("progressBar").style.width =
-      percent+"%";
-
-    if(p.status==="done"){
-      clearInterval(timer);
-      carregarProdutos();
-      alert("Importação finalizada 🚀");
-    }
-
-  },500);
-}
-async function undoDelete(){
-
-  const res = await fetch("/products/undo-delete",{
-    method:"POST",
-    headers:{ Authorization:"Bearer "+token }
-  });
-
-  if(res.ok){
-    carregarProdutos();
-    alert("Produto restaurado ✔");
-  }else{
-    alert("Nada para restaurar");
-  }
-}
-
-
-/* ================= UTIL ================= */
-
-function limparFormulario(){
- nome.value=sku.value=cor.value=tamanho.value="";
- custo.value=venda.value=variacao.value="";
- barcode.value=ano.value="";
- skuCompleto.value="";
-}
+/* ================= INIT ================= */
 
 async function gerarCodigoAutomatico(){
  const r=await fetch("/products/next-code",{headers:{Authorization:"Bearer "+token}});
  codigo.value=(await r.json()).codigo;
 }
 
-function buscar(v){
- document.querySelectorAll("#lista tr").forEach(r=>{
-   r.style.display=r.innerText.toUpperCase().includes(v.toUpperCase())?"":"none";
- });
-}
-
-function voltarDashboard(){
- location.href="dashboard.html";
-}
-
-function abrirExcluirTudo(){
- document.getElementById("modalExcluir").style.display="flex";
-}
-
-function fecharExcluirTudo(){
- document.getElementById("modalExcluir").style.display="none";
-}
-
-async function confirmarExcluirTudo(){
-
- const username = document.getElementById("userDelete").value;
- const password = document.getElementById("passDelete").value;
-
- if(!username || !password){
-   alert("Preencha usuário e senha");
-   return;
- }
-
- const res = await fetch("/products/clear-all",{
-   method:"POST",
-   headers:{
-     "Content-Type":"application/json",
-     Authorization:"Bearer "+token
-   },
-   body:JSON.stringify({username,password})
- });
-
- const data = await res.json();
-
- if(data.success){
-   alert("Tabela limpa com sucesso");
-   fecharExcluirTudo();
-   carregarProdutos();
- }else{
-   alert("Login inválido");
- }
-}
-
-
-
-
-/* INIT */
 window.onload=()=>{
  carregarProdutos();
  carregarFornecedores();
  gerarCodigoAutomatico();
 };
 
+function voltarDashboard(){
+ location.href="dashboard.html";
+}
 
 </script>
-
 </body>
 </html>
