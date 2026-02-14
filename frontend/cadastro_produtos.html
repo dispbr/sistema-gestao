@@ -502,6 +502,34 @@ async function confirmarExcluirTudo(){
 }
 
 
+/* ================= MODAL ================= */
+
+function abrirModal(){
+  const modal = document.getElementById("modalFornecedor");
+  if(modal) modal.style.display = "flex";
+}
+
+function fecharModal(){
+  const modal = document.getElementById("modalFornecedor");
+  if(modal) modal.style.display = "none";
+}
+
+/* ================= GERAR CÓDIGO AUTOMÁTICO ================= */
+
+async function gerarCodigoAutomatico(){
+
+  const res = await fetch("/products/next-code",{
+    headers:{
+      Authorization: "Bearer " + token
+    }
+  });
+
+  if(!res.ok) return;
+
+  const data = await res.json();
+
+  document.getElementById("codigo").value = data.codigo;
+}
 
 
 
