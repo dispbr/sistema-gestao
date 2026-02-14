@@ -2,47 +2,77 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>Login ERP</title>
+<title>Login</title>
+<link rel="stylesheet" href="login.css">
 </head>
-
 <body>
 
-<h2>LOGIN ERP PRO 🔥</h2>
+<main class="login-bg">
+  <section class="login-card">
 
-<input id="username" placeholder="Usuário">
-<input id="password" type="password" placeholder="Senha">
+    <div class="logo">↗</div>
 
-<button onclick="login()">Entrar</button>
+    <h2>Bem-vindo!</h2>
+    <p class="subtitle">Faça login para acessar o sistema</p>
+
+    <div class="field">
+      <label>Usuário</label>
+      <input type="text" id="username" placeholder="Digite seu usuário">
+    </div>
+
+    <div class="field">
+      <label>Senha</label>
+      <input type="password" id="password" placeholder="••••••••">
+    </div>
+
+    <p id="erro" style="color:red; display:none;"></p>
+
+    <button class="btn-login" onclick="login()">
+      Entrar no Sistema
+    </button>
+
+  </section>
+</main>
 
 <script>
+const API = "";
 
-async function login(){
+async function login() {
 
   const username = document.getElementById("username").value;
   const password = document.getElementById("password").value;
+  const erro = document.getElementById("erro");
 
-  const res = await fetch("/login",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify({username,password})
-  });
+  erro.style.display = "none";
 
-  const data = await res.json();
+  try {
+    const res = await fetch(API + "/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
 
-  if(!res.ok){
-    alert(data.error || "Erro login");
-    return;
+    const data = await res.json();
+
+    if (!res.ok) {
+      erro.innerText = data.error || "Usuário ou senha inválidos";
+      erro.style.display = "block";
+      return;
+    }
+
+    // 🔐 Salva dados da sessão
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("role", data.role);
+    localStorage.setItem("username", username);
+
+    // 🔥 SEMPRE abre sua dashboard antiga
+    window.location.href = "dashboard.html";
+
+  } catch (err) {
+    erro.innerText = "Erro de conexão com o servidor";
+    erro.style.display = "block";
   }
-
-  /* 🔥 SALVA TOKEN ERP */
-  localStorage.setItem("token",data.token);
-
-  /* REDIRECIONA */
-  window.location.href="dashboard.html";
 }
-
 </script>
 
 </body>
