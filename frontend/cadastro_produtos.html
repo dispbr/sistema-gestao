@@ -35,29 +35,29 @@
 
 <div class="form-grid">
 
-<input id="codigo" readonly placeholder="Código">
-<input id="nome" placeholder="Nome">
-<select id="fornecedor"></select>
+<input id="código" readonly placeholder="Código do Produto (Gerado Automaticamente)">
+<input id="nome" placeholder="Nome do Produto (Vestido Carol)">
+<select id="fornecedor" placeholder="Escolha um Fornecedor"></select>
 
-<input id="sku" placeholder="SKU">
+<input id="sku" placeholder="Stock Keeping Unit (Identificação do Produto)">
 <input id="cor" placeholder="Cor">
 
 <select id="tamanho">
-<option value="">Tamanho</option>
+<option value="">Escolha um Tamanho</option>
 <option>P</option><option>M</option>
 <option>G</option><option>GG</option>
 <option>ÚNICO</option><option>VARIADOS</option>
 </select>
 
-<input id="skuCompleto" disabled placeholder="SKU COMPLETO">
+<input id="skuCompleto" disabled placeholder="Stock Keeping Unit (completo)">
 
 <input id="estoque" type="number" placeholder="Estoque">
-<input id="custo" placeholder="Preço Custo">
-<input id="venda" placeholder="Preço Venda">
+<input id="custo" placeholder="Preço de Custo">
+<input id="venda" placeholder="Preço de Venda">
 
-<input id="variacao" readonly placeholder="Variação">
-<input id="barcode" placeholder="NCM">
-<input id="ano" placeholder="Ano">
+<input id="variacao" readonly placeholder="Variação (Preço de Venda vs Custo)">
+<input id="barcode" placeholder="NCM (Código Nomenclatura Comum do Mercosul)">
+<input id="ano" placeholder="Ano (Ano de fabricação ou coleção)">
 
 </div>
 
@@ -288,6 +288,41 @@ async function lerExcel(e){
  carregarProdutos();
  alert("Importado ✔");
 }
+
+function abrirPopupDelete(){
+ document.getElementById("popupDelete").style.display="flex";
+}
+
+function fecharPopupDelete(){
+ document.getElementById("popupDelete").style.display="none";
+}
+
+async function confirmarExcluirTudo(){
+
+ const username = document.getElementById("userDelete").value;
+ const password = document.getElementById("passDelete").value;
+
+ const res = await fetch("/products/delete-all",{
+   method:"POST",
+   headers:{
+     "Content-Type":"application/json",
+     Authorization:"Bearer "+token
+   },
+   body:JSON.stringify({username,password})
+ });
+
+ const data = await res.json();
+
+ if(data.success){
+   alert("Tabela limpa ✔");
+   fecharPopupDelete();
+   carregarProdutos();
+ }else{
+   alert("Usuário ou senha inválidos");
+ }
+}
+
+
 
 /* ================= FORNECEDORES ================= */
 
