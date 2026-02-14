@@ -283,18 +283,38 @@ app.post(
 });
 
 
-app.post("/products/delete-all", authenticateToken, async(req,res)=>{
+app.post("/products/delete-all", async (req, res) => {
 
-  const { senha } = req.body;
+  const { username, password } = req.body;
 
-  // 🔥 senha admin (troque se quiser)
-  if(senha !== "123456"){
-    return res.status(403).json({error:"Senha inválida"});
+  if(!username || !password)
+    return res.status(400).json({error:"Usuário e senha obrigatórios"});
+
+  try {
+
+    const r = await pool.query(
+      "SELECT * FROM users WHERE username=$1",
+      [username]
+    );
+
+    if(!r.rows.length)
+      return res.status(401).json({error:"Usuário inválido"});
+
+    const user = r.rows[0];
+
+    const ok = await bcrypt.compare(password, user.password);
+
+    if(!ok)
+      return res.status(401).json({error:"Senha incorreta"});
+
+    await pool.query("DELETE FROM products");
+
+    res.json({success:true});
+
+  } catch(err){
+    console.log(err);
+    res.status(500).json({error:"Erro ao excluir"});
   }
-
-  await pool.query("DELETE FROM products");
-
-  res.json({success:true});
 });
 
 

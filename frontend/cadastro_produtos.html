@@ -175,7 +175,8 @@ document.addEventListener("input", e=>{
 
 async function salvarInline(el){
 
- const row = el.closest("tr");
+ recalcularLinha(row);
+  const row = el.closest("tr");
  const id = row.dataset.id;
  const campo = el.dataset.campo;
  let valor = el.innerText.trim();
@@ -201,28 +202,27 @@ async function salvarInline(el){
  el.style.background="#bbf7d0";
  setTimeout(()=> el.style.background="",500);
 
- recalcularLinha(row);
-}
+ }
 
 /* ================= VARIAÇÃO ================= */
 
 function recalcularLinha(row){
 
  const custo = limparMoeda(
- row.querySelector('[data-campo="preco_custo"]').innerText);
+   row.querySelector('[data-campo="preco_custo"]').innerText
+ );
 
  const venda = limparMoeda(
- row.querySelector('[data-campo="preco_venda"]').innerText);
+   row.querySelector('[data-campo="preco_venda"]').innerText
+ );
+
+ if(!custo || custo===0){
+   row.querySelector(".variacao").innerText = "0%";
+   return;
+ }
 
  row.querySelector(".variacao").innerText =
- calcularVariacaoTabela(custo,venda);
-
- row.querySelector(".skuFull").innerText =
- [
- row.querySelector('[data-campo="sku"]').innerText,
- row.querySelector('[data-campo="cor"]').innerText,
- row.querySelector('[data-campo="tamanho"]').innerText
- ].filter(Boolean).join("-");
+   (((venda-custo)/custo)*100).toFixed(2)+"%";
 }
 
 function calcularVariacaoTabela(c,v){
@@ -368,24 +368,27 @@ async function lerExcel(event){
 
 async function excluirTudo(){
 
-  const senha = prompt("Digite a senha ADMIN para apagar tudo:");
+  const username = prompt("Digite o usuário:");
+  if(!username) return;
 
-  if(!senha) return;
+  const password = prompt("Digite a senha:");
+  if(!password) return;
 
   const res = await fetch("/products/delete-all",{
     method:"POST",
     headers:{
-      "Content-Type":"application/json",
-      Authorization:"Bearer "+token
+      "Content-Type":"application/json"
     },
-    body: JSON.stringify({ senha })
+    body:JSON.stringify({username,password})
   });
 
+  const data = await res.json();
+
   if(res.ok){
-    alert("Tabela limpa com sucesso!");
+    alert("Todos os produtos foram excluídos.");
     carregarProdutos();
   }else{
-    alert("Senha incorreta");
+    alert(data.error || "Erro");
   }
 }
 
@@ -397,6 +400,9 @@ function fecharModal(){
   document.getElementById("modalFornecedor").style.display="none";
 }
 
+function voltarDashboard(){
+  window.location.href = "dashboard.html";
+}
 
 /* ================= INIT ================= */
 
