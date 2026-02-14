@@ -2,77 +2,47 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>Login</title>
-<link rel="stylesheet" href="login.css">
+<title>Login ERP</title>
 </head>
+
 <body>
 
-<main class="login-bg">
-  <section class="login-card">
+<h2>LOGIN ERP PRO 🔥</h2>
 
-    <div class="logo">↗</div>
+<input id="username" placeholder="Usuário">
+<input id="password" type="password" placeholder="Senha">
 
-    <h2>Bem-vindo!</h2>
-    <p class="subtitle">Faça login para acessar o sistema</p>
-
-    <div class="field">
-      <label>Usuário</label>
-      <input type="text" id="username" placeholder="Digite seu usuário">
-    </div>
-
-    <div class="field">
-      <label>Senha</label>
-      <input type="password" id="password" placeholder="••••••••">
-    </div>
-
-    <p id="erro" style="color:red; display:none;"></p>
-
-    <button class="btn-login" onclick="login()">
-      Entrar no Sistema
-    </button>
-
-  </section>
-</main>
+<button onclick="login()">Entrar</button>
 
 <script>
-const API = "";
 
-async function login() {
+async function login(){
 
   const username = document.getElementById("username").value;
   const password = document.getElementById("password").value;
-  const erro = document.getElementById("erro");
 
-  erro.style.display = "none";
+  const res = await fetch("/login",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({username,password})
+  });
 
-  try {
-    const res = await fetch(API + "/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password })
-    });
+  const data = await res.json();
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      erro.innerText = data.error || "Usuário ou senha inválidos";
-      erro.style.display = "block";
-      return;
-    }
-
-    // 🔐 Salva dados da sessão
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("role", data.role);
-    localStorage.setItem("username", username);
-
-    // 🔥 SEMPRE abre sua dashboard antiga
-    window.location.href = "dashboard.html";
-
-  } catch (err) {
-    erro.innerText = "Erro de conexão com o servidor";
-    erro.style.display = "block";
+  if(!res.ok){
+    alert(data.error || "Erro login");
+    return;
   }
+
+  /* 🔥 SALVA TOKEN ERP */
+  localStorage.setItem("token",data.token);
+
+  /* REDIRECIONA */
+  window.location.href="dashboard.html";
 }
+
 </script>
 
 </body>
