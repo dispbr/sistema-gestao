@@ -18,6 +18,10 @@ const path = require("path");
 const multer = require("multer");
 const XLSX = require("xlsx");
 
+const upload = multer({
+  storage: multer.memoryStorage()
+});
+
 const app = express();
 
 app.use(cors());
