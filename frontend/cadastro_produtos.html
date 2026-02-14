@@ -143,6 +143,28 @@ function calcularVariacaoTabela(c,v){
  return (((v-c)/c)*100).toFixed(2)+"%";
 }
 
+
+/* ================= CÓDIGO AUTOMÁTICO ================= */
+
+async function gerarCodigoAutomatico(){
+
+  const res = await fetch("/products/next-code",{
+    headers:{
+      Authorization:"Bearer "+token
+    }
+  });
+
+  const data = await res.json();
+
+  document.getElementById("codigo").value = data.codigo;
+}
+
+
+
+
+
+
+
 /* ===== SKU ===== */
 
 function atualizarSKU(){
@@ -367,10 +389,19 @@ async function carregarFornecedores(){
 /* ===== CODIGO AUTO ===== */
 
 async function gerarCodigoAutomatico(){
- const r=await fetch("/products/next-code",
- {headers:{Authorization:"Bearer "+token}});
- codigo.value=(await r.json()).codigo;
+
+  const res = await fetch("/products/next-code",{
+    headers:{
+      Authorization:"Bearer "+token
+    }
+  });
+
+  const data = await res.json();
+
+  document.getElementById("codigo").value = data.codigo;
 }
+
+
 
 /* ===== INIT ===== */
 
