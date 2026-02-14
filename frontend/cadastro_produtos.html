@@ -35,7 +35,7 @@
 
 <div class="form-grid">
 
-<input id="código" readonly placeholder="Código do Produto (Gerado Automaticamente)">
+<input id="codigo" readonly placeholder="Código do Produto (Gerado Automaticamente)">
 <input id="nome" placeholder="Nome do Produto (Vestido Carol)">
 <select id="fornecedor"><option value="">Escolha um Fornecedor</option>
 <input id="sku" placeholder="Stock Keeping Unit (Identificação do Produto)">
@@ -306,22 +306,39 @@ function importarExcel(){
 
 async function lerExcel(e){
 
- const file=e.target.files[0];
+ const file = e.target.files[0];
  if(!file) return;
 
- const formData=new FormData();
+ const formData = new FormData();
  formData.append("file",file);
 
+ progressBox.style.display="block";
+
  await fetch("/products/import-excel",{
- method:"POST",
- headers:{Authorization:"Bearer "+token},
- body:formData
+  method:"POST",
+  headers:{Authorization:"Bearer "+token},
+  body:formData
  });
 
- e.target.value=""; // IMPORTANTE
+ const timer=setInterval(async()=>{
 
- carregarProdutos();
- alert("Importado ✔");
+   const r=await fetch("/products/import-progress",{
+    headers:{Authorization:"Bearer "+token}
+   });
+
+   const p=await r.json();
+
+   if(p.total){
+     progressBar.style.width =
+       ((p.atual/p.total)*100)+"%";
+   }
+
+   if(p.status==="done"){
+     clearInterval(timer);
+     carregarProdutos();
+   }
+
+ },400);
 }
 
 /* ===== FORNECEDORES ===== */

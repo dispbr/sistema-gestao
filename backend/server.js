@@ -233,58 +233,109 @@ app.delete("/suppliers/:id",authenticateToken, async(req,res)=>{
  res.json({success:true});
 });
 
-/* ================= IMPORT EXCEL ERP ================= */
+function parseMoney(v){
+  if(!v) return 0;
+  return parseFloat(
+    String(v)
+      .replace("R$","")
+      .replace(/\./g,"")
+      .replace(",",".")
+  ) || 0;
+}
 
-const upload = multer({storage:multer.memoryStorage()});
+function pick(obj,...names){
+  for(const n of names){
+    if(obj[n] !== undefined) return obj[n];
+  }
+  return "";
+}
+
+/* ===== importar excel ===== */
 
 app.post("/products/import-excel",
  authenticateToken,
  upload.single("file"),
- async (req,res)=>{
+ async(req,res)=>{
 
  try{
 
-   if(!req.file)
+   if(!req.file){
      return res.status(400).json({error:"Arquivo não enviado"});
+   }
 
    const workbook = XLSX.read(req.file.buffer,{type:"buffer"});
    const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
    const dados = XLSX.utils.sheet_to_json(sheet,{
- defval:"",
- raw:false
-});
+     defval:"",
+     raw:false
+   });
 
-for(const item of dados){
+   importProgress.total = dados.length;
+   importProgress.atual = 0;
+   importProgress.status = "running";
 
-  const nome = item.NOME || item.Nome || item.nome || "";
-  const fornecedor = item.FORNECEDOR || item.Fornecedor || "";
-  const sku = item.SKU || item.Sku || "";
-  const cor = item.COR || item.Cor || "";
-  const tamanho = item.TAMANHO || item.Tamanho || "";
+   for(const item of dados){
 
-  await pool.query(`
-    INSERT INTO products
-    (codigo,nome,fornecedor,sku,cor,tamanho,
-     estoque,preco_custo,preco_venda,barcode,ano)
-    VALUES(
-      (SELECT COALESCE(MAX(codigo),0)+1 FROM products),
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10
-    )
-  `,[
-    nome,
-    fornecedor,
-    sku,
-    cor,
-    tamanho,
-    parseInt(item.ESTOQUE)||0,
-    parseFloat(String(item.CUSTO).replace(",", "."))||0,
-    parseFloat(String(item.VENDA).replace(",", "."))||0,
-    item.NCM||"",
-    parseInt(item.ANO)||null
-  ]);
+     const nome = pick(item,"NOME","Nome","nome","PRODUTO");
+     if(!nome) continue;
 
+     const sku = pick(item,"SKU","Sku","sku");
+     const cor = pick(item,"COR","Cor","cor");
+     const tamanho = pick(item,"TAMANHO","Tamanho","tamanho");
 
+     /* ===== VERIFICAR SE EXISTE ===== */
+     const existe = await pool.query(`
+       SELECT id FROM products
+       WHERE nome=$1 AND sku=$2
+       LIMIT 1
+     `,[nome,sku]);
+
+     const dadosProduto = [
+       nome,
+       pick(item,"FORNECEDOR","Fornecedor","fornecedor"),
+       sku,
+       cor,
+       tamanho,
+       parseInt(pick(item,"ESTOQUE","Estoque"))||0,
+       parseMoney(pick(item,"CUSTO","Preço Custo")),
+       parseMoney(pick(item,"VENDA","Preço Venda")),
+       pick(item,"NCM","barcode"),
+       parseInt(pick(item,"ANO","Ano"))||null
+     ];
+
+     /* ===== UPDATE ===== */
+     if(existe.rows.length){
+
+       await pool.query(`
+         UPDATE products SET
+         nome=$1,
+         fornecedor=$2,
+         sku=$3,
+         cor=$4,
+         tamanho=$5,
+         estoque=$6,
+         preco_custo=$7,
+         preco_venda=$8,
+         barcode=$9,
+         ano=$10
+         WHERE id=$11
+       `,[...dadosProduto,existe.rows[0].id]);
+
+     }else{
+
+       /* ===== INSERT COM CODIGO AUTO ===== */
+       await pool.query(`
+         INSERT INTO products
+         (codigo,nome,fornecedor,sku,cor,tamanho,
+          estoque,preco_custo,preco_venda,barcode,ano)
+         VALUES(
+          (SELECT COALESCE(MAX(codigo),0)+1 FROM products),
+          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10
+         )
+       `,dadosProduto);
+
+     }
 
      importProgress.atual++;
    }
