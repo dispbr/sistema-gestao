@@ -230,82 +230,66 @@ app.delete("/suppliers/:id",authenticateToken, async(req,res)=>{
 
 /* ================= EXCEL IMPORT ================= */
 
+/* ================= EXCEL IMPORT ================= */
+
 const upload = multer({ storage: multer.memoryStorage() });
 
-app.post("/products/import-excel",
- authenticateToken,
- upload.single("file"),
- async(req,res)=>{
+app.post(
+  "/products/import-excel",
+  authenticateToken,
+  upload.single("file"),
+  async (req,res)=>{
 
- try{
+  try{
 
-   if(!req.file)
-    return res.status(400).json({error:"Arquivo não enviado"});
+    if(!req.file)
+      return res.status(400).json({error:"Arquivo não enviado"});
 
-   const workbook = XLSX.read(req.file.buffer,{type:"buffer"});
-   const sheet = workbook.Sheets[workbook.SheetNames[0]];
-   const dados = XLSX.utils.sheet_to_json(sheet);
+    const workbook = XLSX.read(req.file.buffer,{type:"buffer"});
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const dados = XLSX.utils.sheet_to_json(sheet);
 
-   for(const item of dados){
+    // pega último código UMA VEZ só
+    const r = await pool.query(`
+      SELECT MAX(CAST(codigo AS INTEGER)) as ultimo
+      FROM products
+      WHERE codigo ~ '^[0-9]+$'
+    `);
 
-     const codigo = String(item.CODIGO||"").trim();
-     if(!codigo) continue;
+    let contador = Number(r.rows[0].ultimo || 0);
 
-     const existe = await pool.query(
-      "SELECT id FROM products WHERE codigo=$1",[codigo]
-     );
+    for(const item of dados){
 
-     if(existe.rows.length){
+      contador++;
+      const codigo = String(contador).padStart(4,"0");
 
-       await pool.query(`
-       UPDATE products SET
-       nome=$1,fornecedor=$2,sku=$3,cor=$4,tamanho=$5,
-       estoque=$6,preco_custo=$7,preco_venda=$8,
-       barcode=$9,ano=$10
-       WHERE codigo=$11
-       `,[
-        item.NOME||"",
-        item.FORNECEDOR||"",
-        item.SKU||"",
-        item.COR||"",
-        item.TAMANHO||"",
-        parseInt(item.ESTOQUE)||0,
-        parseFloat(item.CUSTO)||0,
-        parseFloat(item.VENDA)||0,
-        item.NCM||"",
-        parseInt(item.ANO)||null,
-        codigo
-       ]);
-
-     }else{
-
-       await pool.query(`
-       INSERT INTO products
-       (codigo,nome,fornecedor,sku,cor,tamanho,
-       estoque,preco_custo,preco_venda,barcode,ano)
-       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-       `,[
+      await pool.query(`
+        INSERT INTO products
+        (codigo,nome,fornecedor,sku,cor,tamanho,
+        estoque,preco_custo,preco_venda,barcode,ano)
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      `,[
         codigo,
-        item.NOME||"",
-        item.FORNECEDOR||"",
-        item.SKU||"",
-        item.COR||"",
-        item.TAMANHO||"",
-        parseInt(item.ESTOQUE)||0,
-        parseFloat(item.CUSTO)||0,
-        parseFloat(item.VENDA)||0,
-        item.NCM||"",
-        parseInt(item.ANO)||null
-       ]);
-     }
-   }
+        item.NOME || item.Nome || "",
+        item.FORNECEDOR || item.Fornecedor || "",
+        item.SKU || item.Sku || "",
+        item.COR || item.Cor || "",
+        item.TAMANHO || item.Tamanho || "",
+        parseInt(item.ESTOQUE || item.Estoque) || 0,
+        parseFloat(String(item.CUSTO || item.Custo || 0).replace(",",".")) || 0,
+        parseFloat(String(item.VENDA || item.Venda || 0).replace(",",".")) || 0,
+        item.NCM || "",
+        parseInt(item.ANO || item.Ano) || null
+      ]);
 
-   res.json({success:true});
+    }
 
- }catch(err){
-   console.log(err);
-   res.status(500).json({error:"Erro importar"});
- }
+    res.json({success:true});
+
+  }catch(err){
+    console.log(err);
+    res.status(500).json({error:"Erro importar"});
+  }
 
 });
 
