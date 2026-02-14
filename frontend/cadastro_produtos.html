@@ -413,11 +413,36 @@ async function lerExcel(event){
 
   if(data.success){
 
-    document.getElementById("importBar").style.width="100%";
-    document.getElementById("importText").innerText =
-      "✔ "+data.total+" produtos importados";
+ const timer = setInterval(async()=>{
 
-    carregarProdutos();
+   const r = await fetch("/products/import-progress",{
+     headers:{ Authorization:"Bearer "+token }
+   });
+
+   const prog = await r.json();
+
+   if(prog.total){
+
+     const percent =
+       (prog.atual / prog.total) * 100;
+
+     document.getElementById("importBar").style.width =
+       percent + "%";
+
+     document.getElementById("importText").innerText =
+       prog.atual + " / " + prog.total;
+
+   }
+
+   if(prog.status==="done"){
+     clearInterval(timer);
+     carregarProdutos();
+     document.getElementById("importText").innerText =
+       "✔ Importação finalizada";
+   }
+
+ },400);
+
 
   }else{
     alert("Erro ao importar");
@@ -506,6 +531,7 @@ async function confirmarExcluirTudo(){
 
 function abrirModal(){
   document.getElementById("modalFornecedor").style.display = "flex";
+carregarFornecedores();
 }
 
 function fecharModal(){
@@ -575,6 +601,57 @@ async function carregarFornecedores(){
 }
 
 
+async function confirmarExcluirTudo(){
+
+  const username =
+    document.getElementById("loginExcluir").value.trim();
+
+  const password =
+    document.getElementById("senhaExcluir").value.trim();
+
+  if(!username || !password){
+    alert("Preencha usuário e senha");
+    return;
+  }
+
+  try{
+
+    const res = await fetch("/products/delete-all",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        Authorization:"Bearer "+token
+      },
+      body: JSON.stringify({
+        username,
+        password
+      })
+    });
+
+    const data = await res.json();
+
+    if(data.success){
+
+      alert("✔ Todos os produtos foram excluídos");
+
+      fecharPopupExcluir();
+
+      carregarProdutos();
+      gerarCodigoAutomatico();
+
+    }else{
+
+      alert(data.error || "Login inválido");
+
+    }
+
+  }catch(err){
+
+    console.error(err);
+    alert("Erro ao excluir produtos");
+
+  }
+}
 
 
 
@@ -596,33 +673,6 @@ carregarFornecedores();
 
 </script>
 
-
-
-<div id="popupExcluir" class="modal-bg" style="display:none;">
-  <div class="modal">
-
-    <h3>⚠️ Confirmação de Segurança</h3>
-    <p>Digite usuário e senha para excluir TODOS os produtos</p>
-
-    <input id="loginExcluir" placeholder="Usuário"
-           style="margin-bottom:10px; width:100%;">
-
-    <input id="senhaExcluir" type="password"
-           placeholder="Senha"
-           style="margin-bottom:15px; width:100%;">
-
-    <div style="display:flex; gap:10px;">
-      <button class="btn red" onclick="confirmarExcluirTudo()">
-        Excluir Tudo
-      </button>
-
-      <button class="btn blue" onclick="fecharPopupExcluir()">
-        Cancelar
-      </button>
-    </div>
-
-  </div>
-</div>
 </div>
 
 
