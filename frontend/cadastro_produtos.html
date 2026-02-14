@@ -17,6 +17,8 @@
   <button class="btn blue" onclick="voltarDashboard()">Voltar</button>
   <button class="btn green" onclick="abrirModal()">Gerenciar Fornecedores</button>
   <button class="btn purple" onclick="importarExcel()">Importar Excel</button>
+  <button class="btn red" onclick="abrirExcluirTudo()">Excluir Tudo </button>
+
 
   <input type="file" id="excelFile"
     accept=".xlsx,.xls"
@@ -89,17 +91,54 @@ onkeyup="buscar(this.value)">
 <div class="modal-bg" id="modalFornecedor">
 <div class="modal">
 <h3>Fornecedores</h3>
+<div class="actions" style="margin-bottom:15px;">
 
-<input id="novoFornecedor" placeholder="Novo fornecedor">
-<button onclick="adicionarFornecedor()">Salvar</button>
+  <input id="novoFornecedor"
+         class="search"
+         placeholder="Nome do fornecedor">
+
+  <button class="btn green"
+          onclick="adicionarFornecedor()">
+    Salvar
+  </button>
+
+</div>
 
 <table class="tabela">
 <tbody id="listaFornecedores"></tbody>
 </table>
+<button class="btn blue"
+          onclick="fecharModal()">
+    Cancelar
+  </button>
+</div>
+</div>
 
-<button onclick="fecharModal()">Fechar</button>
+
+<div class="modal-bg" id="modalExcluir">
+<div class="modal">
+
+<h3>⚠️ Confirmação ERP</h3>
+
+<input id="userDelete" placeholder="Usuário">
+<input id="passDelete" type="password" placeholder="Senha">
+
+<div style="display:flex;gap:10px;margin-top:15px;">
+  <button class="btn red" onclick="confirmarExcluirTudo()">
+    EXCLUIR TUDO
+  </button>
+
+  <button class="btn blue" onclick="fecharExcluirTudo()">
+    Cancelar
+  </button>
+</div>
+
 </div>
 </div>
+
+
+
+
 
 <script>
 
@@ -352,12 +391,54 @@ function voltarDashboard(){
  location.href="dashboard.html";
 }
 
+function abrirExcluirTudo(){
+ document.getElementById("modalExcluir").style.display="flex";
+}
+
+function fecharExcluirTudo(){
+ document.getElementById("modalExcluir").style.display="none";
+}
+
+async function confirmarExcluirTudo(){
+
+ const username = document.getElementById("userDelete").value;
+ const password = document.getElementById("passDelete").value;
+
+ if(!username || !password){
+   alert("Preencha usuário e senha");
+   return;
+ }
+
+ const res = await fetch("/products/clear-all",{
+   method:"POST",
+   headers:{
+     "Content-Type":"application/json",
+     Authorization:"Bearer "+token
+   },
+   body:JSON.stringify({username,password})
+ });
+
+ const data = await res.json();
+
+ if(data.success){
+   alert("Tabela limpa com sucesso");
+   fecharExcluirTudo();
+   carregarProdutos();
+ }else{
+   alert("Login inválido");
+ }
+}
+
+
+
+
 /* INIT */
 window.onload=()=>{
  carregarProdutos();
  carregarFornecedores();
  gerarCodigoAutomatico();
 };
+
 
 </script>
 

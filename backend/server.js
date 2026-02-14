@@ -365,6 +365,41 @@ app.post("/products/delete-all",
 
 });
 
+app.post("/products/clear-all",
+ authenticateToken,
+ async(req,res)=>{
+
+ try{
+
+   const { username,password } = req.body;
+
+   const r = await pool.query(
+     "SELECT * FROM users WHERE username=$1",
+     [username]
+   );
+
+   if(!r.rows.length)
+     return res.status(400).json({success:false});
+
+   const user = r.rows[0];
+
+   const ok = await bcrypt.compare(password,user.password);
+
+   if(!ok)
+     return res.status(400).json({success:false});
+
+   await pool.query("DELETE FROM products");
+
+   res.json({success:true});
+
+ }catch(err){
+   console.log(err);
+   res.status(500).json({success:false});
+ }
+
+});
+
+
 /* ================= ROOT ================= */
 
 app.get("/", (req,res)=>{
@@ -376,3 +411,4 @@ app.get("/", (req,res)=>{
 app.listen(process.env.PORT||3000,()=>{
  console.log("Servidor rodando");
 });
+
