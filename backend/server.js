@@ -236,7 +236,11 @@ app.post(
 
     const workbook = XLSX.read(req.file.buffer,{type:"buffer"});
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const dados = XLSX.utils.sheet_to_json(sheet);
+    const dados = XLSX.utils.sheet_to_json(sheet,{
+  defval: ""
+  
+});
+
 
     // pega último código UMA VEZ só
     const r = await pool.query(`

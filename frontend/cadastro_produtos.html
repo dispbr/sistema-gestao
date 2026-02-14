@@ -24,6 +24,16 @@
          onchange="lerExcel(event)">
 </div>
 
+<div id="progressBox" style="display:none;margin-top:10px;">
+  <div style="background:#ddd;height:20px;border-radius:6px;">
+    <div id="progressBar"
+         style="height:20px;width:0%;background:#22c55e;border-radius:6px;">
+    </div>
+  </div>
+  <small id="progressText">0%</small>
+</div>
+
+
 <div class="form-grid">
 
 <div><label>Código</label><input id="codigo" readonly></div>
@@ -344,28 +354,41 @@ function importarExcel(){
 
 async function lerExcel(event){
 
- const file=event.target.files[0];
- if(!file) return;
+  const file = event.target.files[0];
+  if(!file) return;
 
- const formData=new FormData();
- formData.append("file",file);
+  progressBox.style.display="block";
 
- const res=await fetch("/products/import-excel",{
- method:"POST",
- headers:{Authorization:"Bearer "+token},
- body:formData
- });
+  const formData = new FormData();
+  formData.append("file", file);
 
- if(res.ok){
- alert("Importado com sucesso!");
- carregarProdutos();
- }else{
- alert("Erro ao importar");
- }
+  const xhr = new XMLHttpRequest();
 
- event.target.value="";
+  xhr.open("POST","/products/import-excel");
+
+  xhr.setRequestHeader("Authorization","Bearer "+token);
+
+  xhr.upload.onprogress = function(e){
+
+    if(e.lengthComputable){
+      const pct = Math.round((e.loaded/e.total)*100);
+
+      progressBar.style.width = pct+"%";
+      progressText.innerText = pct+"%";
+    }
+  };
+
+  xhr.onload = function(){
+
+    progressBar.style.width="100%";
+    progressText.innerText="Concluído";
+
+    carregarProdutos();
+  };
+
+  xhr.send(formData);
 }
-
+  
 async function excluirTudo(){
 
   const username = prompt("Digite o usuário:");
@@ -391,13 +414,18 @@ async function excluirTudo(){
     alert(data.error || "Erro");
   }
 }
-
 function abrirModal(){
-  document.getElementById("modalFornecedor").style.display="flex";
+  const modal = document.getElementById("modalFornecedor");
+  if(modal){
+    modal.style.display = "flex";
+  }
 }
 
 function fecharModal(){
-  document.getElementById("modalFornecedor").style.display="none";
+  const modal = document.getElementById("modalFornecedor");
+  if(modal){
+    modal.style.display = "none";
+  }
 }
 
 function voltarDashboard(){
@@ -413,6 +441,24 @@ carregarFornecedores();
 };
 
 </script>
+
+<div class="modal-bg" id="modalDeleteAll" style="display:none;">
+<div class="modal">
+
+<h3>🔒 Confirmar Exclusão Total</h3>
+
+<input id="deleteUser" placeholder="Usuário">
+<input id="deletePass" type="password" placeholder="Senha">
+
+<div style="margin-top:15px;display:flex;gap:10px;">
+  <button class="btn red" onclick="confirmarExcluirTudo()">Excluir Tudo</button>
+  <button class="btn" onclick="fecharDeleteAll()">Cancelar</button>
+</div>
+
+</div>
+</div>
+
+
 
 </body>
 </html>
