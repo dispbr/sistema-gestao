@@ -17,7 +17,7 @@
   <button class="btn blue" onclick="voltarDashboard()">Voltar</button>
   <button class="btn green" onclick="abrirModal()">Gerenciar Fornecedores</button>
   <button class="btn purple" onclick="importarExcel()">Importar Excel</button>
-  <button class="btn red" onclick="abrirExcluirTudo()">Excluir Tudo</button>
+  <button class="btn red" onclick="abrirPopupDelete()">Excluir Tudo</button>
 
   <input type="file" id="excelFile"
     accept=".xlsx,.xls"
@@ -110,7 +110,7 @@
 <!-- POPUP EXCLUIR -->
 <div id="popupDelete" class="modal-bg" style="display:none;">
 <div class="modal">
-<h3>Excluir TODOS</h3>
+<h3>Excluir Todos</h3>
 
 <input id="userDelete" placeholder="Usuário">
 <input id="passDelete" type="password" placeholder="Senha">
@@ -126,14 +126,15 @@
 const token = localStorage.getItem("token");
 if(!token) location.href="login.html";
 
-/* ================== UTIL ================== */
+/* ===== UTIL ===== */
 
 function limparMoeda(v){
  return parseFloat(String(v).replace(/[^\d]/g,''))/100||0;
 }
 
 function formatarMoeda(v){
- return Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+ return Number(v||0).toLocaleString("pt-BR",
+ {style:"currency",currency:"BRL"});
 }
 
 function calcularVariacaoTabela(c,v){
@@ -143,24 +144,30 @@ function calcularVariacaoTabela(c,v){
  return (((v-c)/c)*100).toFixed(2)+"%";
 }
 
-/* ================= SKU ================= */
+/* ===== SKU ===== */
 
 function atualizarSKU(){
- skuCompleto.value=[sku.value,cor.value,tamanho.value].filter(Boolean).join("-");
+ skuCompleto.value=
+ [sku.value,cor.value,tamanho.value]
+ .filter(Boolean).join("-");
 }
+
 sku.oninput=cor.oninput=tamanho.onchange=atualizarSKU;
 
-/* ================= PRODUTOS ================= */
+/* ===== CARREGAR PRODUTOS ===== */
 
 async function carregarProdutos(){
 
- const r=await fetch("/products",{headers:{Authorization:"Bearer "+token}});
+ const r=await fetch("/products",
+ {headers:{Authorization:"Bearer "+token}});
+
  const dados=await r.json();
 
  lista.innerHTML="";
 
  dados.forEach(p=>{
- lista.innerHTML+=`
+
+ lista.innerHTML += `
  <tr data-id="${p.id}">
  <td>${p.codigo}</td>
  <td contenteditable data-campo="nome">${p.nome||""}</td>
@@ -180,13 +187,17 @@ async function carregarProdutos(){
  });
 }
 
-/* ================= INLINE SAVE ================= */
+/* ===== INLINE SAVE ===== */
 
 let t;
+
 document.addEventListener("input",e=>{
+
  if(!e.target.hasAttribute("contenteditable")) return;
+
  clearTimeout(t);
  t=setTimeout(()=>salvarInline(e.target),500);
+
 });
 
 async function salvarInline(el){
@@ -205,19 +216,19 @@ async function salvarInline(el){
  await fetch(`/products/${id}/campo`,{
  method:"PUT",
  headers:{
- "Content-Type":"application/json",
- Authorization:"Bearer "+token
+  "Content-Type":"application/json",
+  Authorization:"Bearer "+token
  },
  body:JSON.stringify({campo,valor})
  });
 
- row.querySelector(".variacao").innerText=
+ row.querySelector(".variacao").innerText =
  calcularVariacaoTabela(
   limparMoeda(row.children[8].innerText),
   limparMoeda(row.children[9].innerText)
  );
 
- row.querySelector(".skuFull").innerText=
+ row.querySelector(".skuFull").innerText =
  [row.children[3].innerText,row.children[4].innerText,row.children[5].innerText]
  .filter(Boolean).join("-");
 
@@ -225,27 +236,27 @@ async function salvarInline(el){
  setTimeout(()=>el.style.background="",500);
 }
 
-/* ================= CRUD ================= */
+/* ===== SALVAR ===== */
 
 async function salvar(){
+
  await fetch("/products",{
  method:"POST",
  headers:{
- "Content-Type":"application/json",
- Authorization:"Bearer "+token
+  "Content-Type":"application/json",
+  Authorization:"Bearer "+token
  },
  body:JSON.stringify({
- codigo:codigo.value,
- nome:nome.value,
- fornecedor:fornecedor.value,
- sku:sku.value,
- cor:cor.value,
- tamanho:tamanho.value,
- estoque:estoque.value,
- preco_custo:limparMoeda(custo.value),
- preco_venda:limparMoeda(venda.value),
- barcode:barcode.value,
- ano:ano.value
+  nome:nome.value,
+  fornecedor:fornecedor.value,
+  sku:sku.value,
+  cor:cor.value,
+  tamanho:tamanho.value,
+  estoque:estoque.value,
+  preco_custo:limparMoeda(custo.value),
+  preco_venda:limparMoeda(venda.value),
+  barcode:barcode.value,
+  ano:ano.value
  })
  });
 
@@ -253,17 +264,42 @@ async function salvar(){
  gerarCodigoAutomatico();
 }
 
-/* ================= EXCLUIR TUDO ================= */
+/* ===== POPUP EXCLUIR ===== */
 
 function abrirPopupDelete(){
- popupDelete.style.display="flex";
+ document.getElementById("popupDelete").style.display="flex";
 }
 
 function fecharPopupDelete(){
- popupDelete.style.display="none";
+ document.getElementById("popupDelete").style.display="none";
 }
 
-/* ================= IMPORTAR ================= */
+async function confirmarExcluirTudo(){
+
+ const username=userDelete.value;
+ const password=passDelete.value;
+
+ const res=await fetch("/products/delete-all",{
+ method:"POST",
+ headers:{
+  "Content-Type":"application/json",
+  Authorization:"Bearer "+token
+ },
+ body:JSON.stringify({username,password})
+ });
+
+ const d=await res.json();
+
+ if(d.success){
+  fecharPopupDelete();
+  carregarProdutos();
+  alert("Tabela limpa ✔");
+ }else{
+  alert("Login inválido");
+ }
+}
+
+/* ===== IMPORTAR EXCEL ===== */
 
 function importarExcel(){
  excelFile.click();
@@ -277,77 +313,50 @@ async function lerExcel(e){
  const formData=new FormData();
  formData.append("file",file);
 
- document.getElementById("progressBox").style.display="block";
-
  await fetch("/products/import-excel",{
  method:"POST",
  headers:{Authorization:"Bearer "+token},
  body:formData
  });
 
+ e.target.value=""; // IMPORTANTE
+
  carregarProdutos();
  alert("Importado ✔");
 }
 
-function abrirPopupDelete(){
- document.getElementById("popupDelete").style.display="flex";
-}
-
-function fecharPopupDelete(){
- document.getElementById("popupDelete").style.display="none";
-}
-
-async function confirmarExcluirTudo(){
-
- const username = document.getElementById("userDelete").value;
- const password = document.getElementById("passDelete").value;
-
- const res = await fetch("/products/delete-all",{
-   method:"POST",
-   headers:{
-     "Content-Type":"application/json",
-     Authorization:"Bearer "+token
-   },
-   body:JSON.stringify({username,password})
- });
-
- const data = await res.json();
-
- if(data.success){
-   alert("Tabela limpa ✔");
-   fecharPopupDelete();
-   carregarProdutos();
- }else{
-   alert("Usuário ou senha inválidos");
- }
-}
-
-
-
-/* ================= FORNECEDORES ================= */
+/* ===== FORNECEDORES ===== */
 
 function abrirModal(){ modalFornecedor.style.display="flex"; }
 function fecharModal(){ modalFornecedor.style.display="none"; }
 
 async function carregarFornecedores(){
- const r=await fetch("/suppliers",{headers:{Authorization:"Bearer "+token}});
+
+ const r=await fetch("/suppliers",
+ {headers:{Authorization:"Bearer "+token}});
+
  const dados=await r.json();
 
  fornecedor.innerHTML="<option></option>";
+
  listaFornecedores.innerHTML="";
 
  dados.forEach(f=>{
-  fornecedor.innerHTML+=`<option>${f.nome}</option>`;
-  listaFornecedores.innerHTML+=`<tr><td>${f.nome}</td></tr>`;
+  fornecedor.innerHTML += `<option>${f.nome}</option>`;
+  listaFornecedores.innerHTML += `<tr><td>${f.nome}</td></tr>`;
  });
+
 }
 
-/* ================= INIT ================= */
+/* ===== CODIGO AUTO ===== */
 
 async function gerarCodigoAutomatico(){
- const r=await fetch("/products/next-code",{headers:{Authorization:"Bearer "+token}});
+ const r=await fetch("/products/next-code",
+ {headers:{Authorization:"Bearer "+token}});
  codigo.value=(await r.json()).codigo;
 }
+
+/* ===== INIT ===== */
 
 window.onload=()=>{
  carregarProdutos();
@@ -360,5 +369,6 @@ function voltarDashboard(){
 }
 
 </script>
+
 </body>
 </html>
