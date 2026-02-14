@@ -505,13 +505,11 @@ async function confirmarExcluirTudo(){
 /* ================= MODAL ================= */
 
 function abrirModal(){
-  const modal = document.getElementById("modalFornecedor");
-  if(modal) modal.style.display = "flex";
+  document.getElementById("modalFornecedor").style.display = "flex";
 }
 
 function fecharModal(){
-  const modal = document.getElementById("modalFornecedor");
-  if(modal) modal.style.display = "none";
+  document.getElementById("modalFornecedor").style.display = "none";
 }
 
 /* ================= GERAR CÓDIGO AUTOMÁTICO ================= */
@@ -530,19 +528,6 @@ async function gerarCodigoAutomatico(){
 
   document.getElementById("codigo").value = data.codigo;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
