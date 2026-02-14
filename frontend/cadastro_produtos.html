@@ -17,13 +17,23 @@
   <button class="btn blue" onclick="voltarDashboard()">Voltar</button>
   <button class="btn green" onclick="abrirModal()">Gerenciar Fornecedores</button>
   <button class="btn purple" onclick="importarExcel()">Importar Excel</button>
-  <button class="btn red" onclick="abrirExcluirTudo()">Excluir Tudo </button>
+  <button class="btn red" onclick="abrirExcluirTudo()">Excluir Tudo</button>
+  <button class="btn orange" onclick="undoDelete()">↩ Undo Delete</button>
 
 
   <input type="file" id="excelFile"
     accept=".xlsx,.xls"
     style="display:none"
     onchange="lerExcel(event)">
+</div>
+
+
+<div id="progressBox" style="display:none; margin-top:10px;">
+  <div style="background:#eee;height:20px;border-radius:10px;">
+    <div id="progressBar"
+      style="height:20px;background:#16a34a;width:0%;border-radius:10px;">
+    </div>
+  </div>
 </div>
 
 <div class="form-grid">
@@ -40,7 +50,7 @@
 <option value="">Tamanho</option>
 <option>P</option><option>M</option>
 <option>G</option><option>GG</option>
-<option>ÚNICO</option>
+<option>ÚNICO</option><option>VARIADOS</option>
 </select>
 
 <input id="skuCompleto" disabled placeholder="SKU COMPLETO">
@@ -350,22 +360,60 @@ async function adicionarFornecedor(){
 
 function importarExcel(){ excelFile.click(); }
 
-async function lerExcel(e){
+async function lerExcel(event){
 
- const file=e.target.files[0];
- if(!file) return;
+  const file = event.target.files[0];
+  if(!file) return;
 
- const fd=new FormData();
- fd.append("file",file);
+  const formData = new FormData();
+  formData.append("file", file);
 
- await fetch("/products/import-excel",{
- method:"POST",
- headers:{Authorization:"Bearer "+token},
- body:fd
- });
+  document.getElementById("progressBox").style.display="block";
 
- carregarProdutos();
+  fetch("/products/import-excel",{
+    method:"POST",
+    headers:{ Authorization:"Bearer "+token },
+    body: formData
+  });
+
+  const timer = setInterval(async()=>{
+
+    const r = await fetch("/products/import-progress",{
+      headers:{ Authorization:"Bearer "+token }
+    });
+
+    const p = await r.json();
+
+    if(p.total===0) return;
+
+    const percent = (p.atual/p.total)*100;
+
+    document.getElementById("progressBar").style.width =
+      percent+"%";
+
+    if(p.status==="done"){
+      clearInterval(timer);
+      carregarProdutos();
+      alert("Importação finalizada 🚀");
+    }
+
+  },500);
 }
+async function undoDelete(){
+
+  const res = await fetch("/products/undo-delete",{
+    method:"POST",
+    headers:{ Authorization:"Bearer "+token }
+  });
+
+  if(res.ok){
+    carregarProdutos();
+    alert("Produto restaurado ✔");
+  }else{
+    alert("Nada para restaurar");
+  }
+}
+
 
 /* ================= UTIL ================= */
 
