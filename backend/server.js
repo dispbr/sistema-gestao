@@ -249,42 +249,49 @@ app.post("/products/import-excel",
 
    const workbook = XLSX.read(req.file.buffer,{type:"buffer"});
    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-   const dados = XLSX.utils.sheet_to_json(sheet);
-
+   const dados = XLSX.utils.sheet_to_json(sheet,{
+    defval:""
+   });
    importProgress.total = dados.length;
    importProgress.atual = 0;
    importProgress.status = "running";
 
-   for(const item of dados){
+ 
+  
 
-     const r = await pool.query(`
-       SELECT MAX(CAST(codigo AS INTEGER)) as ultimo
-       FROM products
-       WHERE codigo ~ '^[0-9]+$'
-     `);
 
-     const next =
-       String(Number(r.rows[0].ultimo||0)+1)
-       .padStart(4,"0");
+for(const item of dados){
 
-     await pool.query(`
-       INSERT INTO products
-       (codigo,nome,fornecedor,sku,cor,tamanho,
-        estoque,preco_custo,preco_venda,barcode,ano)
-       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-     `,[
-       next,
-       item.NOME || "",
-       item.FORNECEDOR || "",
-       item.SKU || "",
-       item.COR || "",
-       item.TAMANHO || "",
-       parseInt(item.ESTOQUE)||0,
-       parseFloat(String(item.CUSTO||0).replace(",","."))||0,
-       parseFloat(String(item.VENDA||0).replace(",","."))||0,
-       item.NCM || "",
-       parseInt(item.ANO)||null
-     ]);
+  // GERAR CÓDIGO AUTOMÁTICO
+  const r = await pool.query(`
+    SELECT MAX(CAST(codigo AS INTEGER)) as ultimo
+    FROM products
+    WHERE codigo ~ '^[0-9]+$'
+  `);
+
+  const next =
+    String(Number(r.rows[0].ultimo || 0) + 1)
+    .padStart(4,"0");
+
+  await pool.query(`
+    INSERT INTO products
+    (codigo,nome,fornecedor,sku,cor,tamanho,
+     estoque,preco_custo,preco_venda,barcode,ano)
+    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+  `,[
+    next,
+    item.NOME || item.Nome || "",
+    item.FORNECEDOR || item.Fornecedor || "",
+    item.SKU || item.Sku || "",
+    item.COR || item.Cor || "",
+    item.TAMANHO || item.Tamanho || "",
+    parseInt(item.ESTOQUE || item.Estoque) || 0,
+    parseFloat(String(item.CUSTO || item.Custo || 0).replace(",", ".")) || 0,
+    parseFloat(String(item.VENDA || item.Venda || 0).replace(",", ".")) || 0,
+    item.NCM || "",
+    parseInt(item.ANO || item.Ano) || null
+  ]);
+
 
      importProgress.atual++;
    }
