@@ -143,14 +143,26 @@ app.get("/products/next-code",authenticateToken, async(req,res)=>{
 
 app.post("/products", authenticateToken, async(req,res)=>{
 
-  const p=req.body;
+  const p = req.body;
+
+  const precoCusto = parseFloat(p.preco_custo) || 0;
+  const precoVenda = parseFloat(p.preco_venda) || 0;
+
+  // 🔥 VARIAÇÃO AUTOMÁTICA NO BACKEND
+  let variacao = "0%";
+
+  if(precoCusto > 0){
+    variacao =
+      (((precoVenda - precoCusto) / precoCusto) * 100)
+      .toFixed(2) + "%";
+  }
 
   const result = await pool.query(`
-  INSERT INTO products
-  (codigo,nome,fornecedor,sku,cor,tamanho,
-  estoque,preco_custo,preco_venda,variacao,barcode,ano)
-  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-  RETURNING *
+    INSERT INTO products
+    (codigo,nome,fornecedor,sku,cor,tamanho,
+    estoque,preco_custo,preco_venda,variacao,barcode,ano)
+    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+    RETURNING *
   `,[
     p.codigo||"",
     p.nome||"",
@@ -159,37 +171,14 @@ app.post("/products", authenticateToken, async(req,res)=>{
     p.cor||"",
     p.tamanho||"",
     parseInt(p.estoque)||0,
-    parseFloat(p.preco_custo)||0,
-    parseFloat(p.preco_venda)||0,
-    p.variacao||"",
+    precoCusto,
+    precoVenda,
+    variacao,   // 🔥 agora vem automático
     p.barcode||"",
     parseInt(p.ano)||null
   ]);
 
   res.json(result.rows[0]);
-});
-
-/* INLINE UPDATE */
-
-app.put("/products/:id/campo", authenticateToken, async(req,res)=>{
-
-  const {campo,valor}=req.body;
-
-  const camposPermitidos=[
-    "nome","fornecedor","sku","cor","tamanho",
-    "estoque","preco_custo","preco_venda",
-    "barcode","ano"
-  ];
-
-  if(!camposPermitidos.includes(campo))
-    return res.status(400).json({error:"Campo inválido"});
-
-  await pool.query(
-   `UPDATE products SET ${campo}=$1 WHERE id=$2`,
-   [valor,req.params.id]
-  );
-
-  res.json({success:true});
 });
 
 /* DELETE */
@@ -292,6 +281,22 @@ app.post(
   }
 
 });
+
+
+app.post("/products/delete-all", authenticateToken, async(req,res)=>{
+
+  const { senha } = req.body;
+
+  // 🔥 senha admin (troque se quiser)
+  if(senha !== "123456"){
+    return res.status(403).json({error:"Senha inválida"});
+  }
+
+  await pool.query("DELETE FROM products");
+
+  res.json({success:true});
+});
+
 
 /* ================= ROOT ================= */
 

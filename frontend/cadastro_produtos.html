@@ -16,6 +16,7 @@
 <div class="actions">
   <button class="btn blue" onclick="voltarDashboard()">Voltar</button>
   <button class="btn green" onclick="abrirModal()">Gerenciar Fornecedores</button>
+  <button class="btn red" onclick="excluirTudo()">Excluir Tudo</button>
   <button class="btn purple" onclick="importarExcel()">Importar Excel</button>
 
   <input type="file" id="excelFile" accept=".xlsx,.xls"
@@ -50,7 +51,7 @@
 <div><label>Preço Venda</label><input id="venda"></div>
 <div><label>Variação %</label><input id="variacao" readonly></div>
 <div><label>NCM</label><input id="barcode"></div>
-
+<div><label>Ano</label><input id="ano"></div>
 </div>
 
 <button class="btn-submit" onclick="salvar()">Adicionar Produto</button>
@@ -283,7 +284,9 @@ async function salvar(){
   preco_custo:limparMoeda(custo.value),
   preco_venda:limparMoeda(venda.value),
   variacao:variacao.value,
-  barcode:barcode.value
+  barcode:barcode.value,
+  ano:ano.value,
+
  };
 
  await fetch("/products",{
@@ -362,6 +365,38 @@ async function lerExcel(event){
 
  event.target.value="";
 }
+
+async function excluirTudo(){
+
+  const senha = prompt("Digite a senha ADMIN para apagar tudo:");
+
+  if(!senha) return;
+
+  const res = await fetch("/products/delete-all",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer "+token
+    },
+    body: JSON.stringify({ senha })
+  });
+
+  if(res.ok){
+    alert("Tabela limpa com sucesso!");
+    carregarProdutos();
+  }else{
+    alert("Senha incorreta");
+  }
+}
+
+function abrirModal(){
+  document.getElementById("modalFornecedor").style.display="flex";
+}
+
+function fecharModal(){
+  document.getElementById("modalFornecedor").style.display="none";
+}
+
 
 /* ================= INIT ================= */
 
