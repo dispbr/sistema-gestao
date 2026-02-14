@@ -343,22 +343,31 @@ app.post("/products/import-excel",
 
 
      }else{
+/* ===== INSERT COM CODIGO AUTO ===== */
+await pool.query(`
+  INSERT INTO products
+  (codigo,nome,fornecedor,sku,cor,tamanho,
+   estoque,preco_custo,preco_venda,variacao,barcode,ano)
+  VALUES(
+   (SELECT COALESCE(MAX(codigo),0)+1 FROM products),
+   $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11
+  )
+`,[
+  nome,
+  pick(item,"FORNECEDOR","Fornecedor","fornecedor"),
+  sku,
+  cor,
+  tamanho,
+  parseInt(pick(item,"ESTOQUE","Estoque"))||0,
+  parseMoney(pick(item,"CUSTO","Preço Custo")),
+  parseMoney(pick(item,"VENDA","Preço Venda")),
 
-       /* ===== INSERT COM CODIGO AUTO ===== */
-       await pool.query(`
-         INSERT INTO products
-        (codigo,nome,fornecedor,sku,cor,tamanho,
-        estoque,preco_custo,preco_venda,variacao,barcode,ano)
-         VALUES(
-          (SELECT COALESCE(MAX(codigo),0)+1 FROM products),
-          $1,$2,$3,$4,$5,$6,$7,$8,
-          CASE
-            WHEN $7 > 0 THEN ROUND((($8-$7)/$7)*100,2)::text || '%'
-            ELSE '0%'
-          END,
-          $9,$10
-          )
-       `,dadosProduto);
+  /* 🔥 VARIAÇÃO AUTOMÁTICA */
+  "",
+
+  pick(item,"NCM","barcode"),
+  parseInt(pick(item,"ANO","Ano"))||null
+]);
 
      }
 
