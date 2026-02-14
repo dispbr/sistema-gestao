@@ -69,6 +69,14 @@ CREATE TABLE IF NOT EXISTS products(
  ano INTEGER
 );
 `);
+await pool.query(`
+CREATE TABLE IF NOT EXISTS users(
+ id SERIAL PRIMARY KEY,
+ username VARCHAR(100) UNIQUE,
+ password TEXT,
+ role VARCHAR(20) DEFAULT 'admin'
+);
+`);
 
 await pool.query(`
 CREATE TABLE IF NOT EXISTS suppliers(
@@ -311,32 +319,45 @@ app.post("/products/import-excel",
      /* ===== UPDATE ===== */
      if(existe.rows.length){
 
-       await pool.query(`
-         UPDATE products SET
-         nome=$1,
-         fornecedor=$2,
-         sku=$3,
-         cor=$4,
-         tamanho=$5,
-         estoque=$6,
-         preco_custo=$7,
-         preco_venda=$8,
-         barcode=$9,
-         ano=$10
-         WHERE id=$11
-       `,[...dadosProduto,existe.rows[0].id]);
+    await pool.query(`
+      UPDATE products SET
+      nome=$1,
+      fornecedor=$2,
+      sku=$3,
+      cor=$4,
+      tamanho=$5,
+      estoque=$6,
+      preco_custo=$7,
+      preco_venda=$8,
+      variacao = CASE
+        WHEN $7 > 0 THEN
+          ROUND((($8-$7)/$7)*100,2)::text || '%'
+        ELSE '0%'
+      END,
+      barcode=$9,
+      ano=$10
+      WHERE id=$11
+  `,[...dadosProduto,existe.rows[0].id]);
+
+
+
 
      }else{
 
        /* ===== INSERT COM CODIGO AUTO ===== */
        await pool.query(`
          INSERT INTO products
-         (codigo,nome,fornecedor,sku,cor,tamanho,
-          estoque,preco_custo,preco_venda,barcode,ano)
+        (codigo,nome,fornecedor,sku,cor,tamanho,
+        estoque,preco_custo,preco_venda,variacao,barcode,ano)
          VALUES(
           (SELECT COALESCE(MAX(codigo),0)+1 FROM products),
-          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10
-         )
+          $1,$2,$3,$4,$5,$6,$7,$8,
+          CASE
+            WHEN $7 > 0 THEN ROUND((($8-$7)/$7)*100,2)::text || '%'
+            ELSE '0%'
+          END,
+          $9,$10
+          )
        `,dadosProduto);
 
      }
