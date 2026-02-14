@@ -73,7 +73,7 @@ if(!token){
 <table class="tabela">
 <thead>
 <tr>
-<th>Código</th>
+<th>Codigo</th>
 <th>Nome</th>
 <th>Fornecedor</th>
 <th>Sku</th>
@@ -127,7 +127,14 @@ if(!token){
 </div>
 
 <script>
- 
+ /* ================= TOKEN ERP ================= */
+
+const token = localStorage.getItem("token");
+
+if(!token){
+  window.location.href = "login.html";
+}
+
 
 /* ===== UTIL ===== */
 
@@ -413,6 +420,7 @@ window.onload=()=>{
  carregarProdutos();
  carregarFornecedores();
  gerarCodigoAutomatico();
+lerExcel()
 };
 
 function voltarDashboard(){
