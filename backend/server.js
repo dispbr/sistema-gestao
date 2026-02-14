@@ -311,6 +311,48 @@ app.get("/",(req,res)=>{
  res.sendFile(path.join(__dirname,"../frontend/login.html"));
 });
 
+/* ================= LOGIN ================= */
+
+app.post("/login", async (req,res)=>{
+
+  try{
+
+    const { username, password } = req.body;
+
+    const result = await pool.query(
+      "SELECT * FROM users WHERE username=$1",
+      [username]
+    );
+
+    if(!result.rows.length){
+      return res.status(400).json({error:"Usuário inválido"});
+    }
+
+    const user = result.rows[0];
+
+    const valid = await bcrypt.compare(password, user.password);
+
+    if(!valid){
+      return res.status(400).json({error:"Senha inválida"});
+    }
+
+    const token = jwt.sign(
+      { id:user.id, role:user.role },
+      SECRET,
+      { expiresIn:"30m" }
+    );
+
+    res.json({
+      token,
+      role:user.role
+    });
+
+  }catch(err){
+    console.log(err);
+    res.status(500).json({error:"Erro no login"});
+  }
+});
+
 /* ================= START ================= */
 
 app.listen(process.env.PORT||3000,()=>{
