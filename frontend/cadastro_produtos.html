@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -8,11 +7,6 @@
 </head>
 
 <body>
-const token = localStorage.getItem("token");
-
-if(!token){
-  location.href = "login.html";
-}
 
 <main class="bg">
 <section class="card">
@@ -22,64 +16,87 @@ if(!token){
 <div class="actions">
   <button class="btn blue" onclick="voltarDashboard()">Voltar</button>
   <button class="btn green" onclick="abrirModal()">Gerenciar Fornecedores</button>
+  <button class="btn red" onclick="abrirPopupExcluir()">Excluir Tudo</button>
   <button class="btn purple" onclick="importarExcel()">Importar Excel</button>
-  <button class="btn red" onclick="abrirPopupDelete()">Excluir Tudo</button>
 
-  <input type="file" id="excelFile"
-    accept=".xlsx,.xls"
-    style="display:none"
-    onchange="lerExcel(event)">
+  <input type="file" id="excelFile" accept=".xlsx,.xls"
+         style="display:none"
+         onchange="lerExcel(event)">
+</div>
+<!-- PROGRESS IMPORT -->
+<div id="importProgress" style="
+display:none;
+margin-top:10px;
+background:#e5e7eb;
+border-radius:8px;
+overflow:hidden;
+height:20px;
+">
+
+<div id="importBar" style="
+height:100%;
+width:0%;
+background:#22c55e;
+transition:0.3s;
+"></div>
+
 </div>
 
-<div id="progressBox" style="display:none;margin-top:10px;">
-  <div style="background:#eee;height:20px;border-radius:10px;">
-    <div id="progressBar"
-      style="height:20px;background:#16a34a;width:0%;border-radius:10px;">
-    </div>
-  </div>
-</div>
+<div id="importText" style="font-size:13px;margin-top:5px;"></div>
 
 <div class="form-grid">
 
-<input id="codigo" readonly placeholder="Código do Produto (Gerado Automaticamente)">
-<input id="nome" placeholder="Nome do Produto (Vestido Carol)">
-<select id="fornecedor"><option value="">Escolha um Fornecedor</option></select>
-<input id="sku" placeholder="Stock Keeping Unit (Identificação do Produto)">
-<input id="cor" placeholder="Cor">
+<div><label>Código</label><input id="codigo" readonly></div>
+<div><label>Nome</label><input id="nome"></div>
+<div><label>Fornecedor</label><select id="fornecedor"></select></div>
+<div><label>SKU</label><input id="sku"></div>
+<div><label>Cor</label><input id="cor"></div>
 
+<div>
+<label>Tamanho</label>
 <select id="tamanho">
-<option value="">Escolha um Tamanho</option>
-<option>P</option><option>M</option>
-<option>G</option><option>GG</option>
-<option>ÚNICO</option><option>VARIADOS</option>
+<option value="">Selecione</option>
+<option>P</option>
+<option>M</option>
+<option>G</option>
+<option>GG</option>
+<option>ÚNICO</option>
+<option>VARIADOS</option>
 </select>
+</div>
 
-<input id="skuCompleto" disabled placeholder="Stock Keeping Unit (completo)">
-
-<input id="estoque" type="number" placeholder="Estoque">
-<input id="custo" placeholder="Preço de Custo">
-<input id="venda" placeholder="Preço de Venda">
-
-<input id="variacao" readonly placeholder="Variação (Preço de Venda vs Custo)">
-<input id="barcode" placeholder="NCM (Código Nomenclatura Comum do Mercosul)">
-<input id="ano" placeholder="Ano (Ano de fabricação ou coleção)">
-
+<div><label>SKU Completo</label><input id="skuCompleto" disabled></div>
+<div><label>Estoque</label><input id="estoque" type="number"></div>
+<div><label>Preço Custo</label><input id="custo"></div>
+<div><label>Preço Venda</label><input id="venda"></div>
+<div><label>Variação %</label><input id="variacao" readonly></div>
+<div><label>NCM</label><input id="barcode"></div>
+<div><label>Ano</label><input id="ano"></div>
 </div>
 
 <button class="btn-submit" onclick="salvar()">Adicionar Produto</button>
 
 <input class="search" placeholder="Buscar..." onkeyup="buscar(this.value)">
 
+<div style="display:flex; gap:10px; margin-bottom:10px;">
+<select id="colunaBusca" class="search" style="max-width:220px;">
+<option value="todas">Todas as colunas</option>
+<option value="codigo">Código</option>
+<option value="nome">Nome</option>
+<option value="fornecedor">Fornecedor</option>
+</select>
+</div>
+
 <table class="tabela">
 <thead>
 <tr>
-<th>Codigo</th>
+<th>Código</th>
 <th>Nome</th>
 <th>Fornecedor</th>
-<th>Sku</th>
+<th>SKU</th>
 <th>Cor</th>
 <th>Tamanho</th>
-<th>Sku Completo</th>
+<th>SKU Completo</th>
 <th>Estoque</th>
 <th>Custo</th>
 <th>Venda</th>
@@ -95,190 +112,216 @@ if(!token){
 </section>
 </main>
 
-<!-- MODAL FORNECEDORES -->
-<div class="modal-bg" id="modalFornecedor">
-<div class="modal">
-<h3>Fornecedores</h3>
-
-<input id="novoFornecedor" class="search" placeholder="Nome fornecedor">
-
-<button class="btn green" onclick="adicionarFornecedor()">Salvar</button>
-
-<table class="tabela">
-<tbody id="listaFornecedores"></tbody>
-</table>
-
-<button class="btn blue" onclick="fecharModal()">Fechar</button>
-</div>
-</div>
-
-<!-- POPUP EXCLUIR -->
-<div id="popupDelete" class="modal-bg" style="display:none;">
-<div class="modal">
-<h3>Excluir Todos</h3>
-
-<input id="userDelete" placeholder="Usuário">
-<input id="passDelete" type="password" placeholder="Senha">
-
-<button class="btn red" onclick="confirmarExcluirTudo()">Confirmar</button>
-<button class="btn blue" onclick="fecharPopupDelete()">Cancelar</button>
-
-</div>
-</div>
-
 <script>
- /* ================= TOKEN ERP ================= */
 
 const token = localStorage.getItem("token");
+if(!token) location.href="login.html";
 
-if(!token){
-  window.location.href = "login.html";
-}
-
-
-/* ===== UTIL ===== */
-
-function limparMoeda(v){
- return parseFloat(String(v).replace(/[^\d]/g,''))/100||0;
-}
-
-function formatarMoeda(v){
- return Number(v||0).toLocaleString("pt-BR",
- {style:"currency",currency:"BRL"});
-}
-
-function calcularVariacaoTabela(c,v){
- c=Number(c)||0;
- v=Number(v)||0;
- if(c<=0) return "0%";
- return (((v-c)/c)*100).toFixed(2)+"%";
-}
-
-
-/* ================= CÓDIGO AUTOMÁTICO ================= */
-
-async function gerarCodigoAutomatico(){
-
-  const res = await fetch("/products/next-code",{
-    headers:{
-      Authorization:"Bearer "+token
-    }
-  });
-
-  const data = await res.json();
-
-  document.getElementById("codigo").value = data.codigo;
-}
-
-
-
-
-
-
-
-/* ===== SKU ===== */
+/* ================= SKU COMPLETO ================= */
 
 function atualizarSKU(){
- skuCompleto.value=
- [sku.value,cor.value,tamanho.value]
- .filter(Boolean).join("-");
+  skuCompleto.value =
+  [sku.value,cor.value,tamanho.value]
+  .filter(Boolean).join("-");
 }
 
-sku.oninput=cor.oninput=tamanho.onchange=atualizarSKU;
+sku.oninput = atualizarSKU;
+cor.oninput = atualizarSKU;
+tamanho.onchange = atualizarSKU;
 
-/* ===== CARREGAR PRODUTOS ===== */
+/* ================= CARREGAR PRODUTOS ================= */
+
+/* ================= CALCULAR VARIAÇÃO TABELA ================= */
+
+function calcularVariacaoTabela(custo, venda){
+
+  const c = Number(custo || 0);
+  const v = Number(venda || 0);
+
+  if(c === 0) return "0%";
+
+  return (((v - c) / c) * 100).toFixed(2) + "%";
+}
+
 
 async function carregarProdutos(){
 
- const r=await fetch("/products",
- {headers:{Authorization:"Bearer "+token}});
+  const res = await fetch("/products",{
+    headers:{ Authorization:"Bearer "+token }
+  });
 
- const dados=await r.json();
+  const produtos = await res.json();
+  lista.innerHTML="";
 
- lista.innerHTML="";
+  produtos.forEach(p=>{
 
- dados.forEach(p=>{
+    lista.innerHTML+=`
+    <tr data-id="${p.id}">
 
- lista.innerHTML += `
- <tr data-id="${p.id}">
- <td>${p.codigo}</td>
- <td contenteditable data-campo="nome">${p.nome||""}</td>
- <td contenteditable data-campo="fornecedor">${p.fornecedor||""}</td>
- <td contenteditable data-campo="sku">${p.sku||""}</td>
- <td contenteditable data-campo="cor">${p.cor||""}</td>
- <td contenteditable data-campo="tamanho">${p.tamanho||""}</td>
- <td class="skuFull">${[p.sku,p.cor,p.tamanho].filter(Boolean).join("-")}</td>
- <td contenteditable data-campo="estoque">${p.estoque}</td>
- <td contenteditable data-campo="preco_custo">${formatarMoeda(p.preco_custo)}</td>
- <td contenteditable data-campo="preco_venda">${formatarMoeda(p.preco_venda)}</td>
- <td class="variacao">${calcularVariacaoTabela(p.preco_custo,p.preco_venda)}</td>
- <td contenteditable data-campo="barcode">${p.barcode||""}</td>
- <td contenteditable data-campo="ano">${p.ano||""}</td>
- <td><button onclick="excluirProduto(${p.id})">🗑</button></td>
- </tr>`;
- });
+    <td>${p.codigo}</td>
+    <td contenteditable data-campo="nome">${p.nome||""}</td>
+    <td contenteditable data-campo="fornecedor">${p.fornecedor||""}</td>
+    <td contenteditable data-campo="sku">${p.sku||""}</td>
+    <td contenteditable data-campo="cor">${p.cor||""}</td>
+    <td contenteditable data-campo="tamanho">${p.tamanho||""}</td>
+
+    <td class="skuFull">
+    ${[p.sku,p.cor,p.tamanho].filter(Boolean).join("-")}
+    </td>
+
+    <td contenteditable data-campo="estoque">${p.estoque||0}</td>
+
+    <td contenteditable data-campo="preco_custo">
+    ${formatarMoeda(p.preco_custo)}
+    </td>
+
+    <td contenteditable data-campo="preco_venda">
+    ${formatarMoeda(p.preco_venda)}
+    </td>
+
+    <td class="variacao">
+    ${calcularVariacaoTabela(p.preco_custo,p.preco_venda)}
+    </td>
+
+    <td contenteditable data-campo="barcode">${p.barcode||""}</td>
+    <td contenteditable data-campo="ano">${p.ano||""}</td>
+
+    <td><button onclick="excluirProduto(${p.id})">🗑</button></td>
+
+    </tr>`;
+  });
 }
 
-/* ===== INLINE SAVE ===== */
+/* ================= AUTO SAVE INLINE ================= */
 
-let t;
-
-document.addEventListener("input",e=>{
+document.addEventListener("input", e=>{
 
  if(!e.target.hasAttribute("contenteditable")) return;
 
- clearTimeout(t);
- t=setTimeout(()=>salvarInline(e.target),500);
+ clearTimeout(window.saveTimer);
+
+ window.saveTimer = setTimeout(()=>{
+   salvarInline(e.target);
+ },500);
 
 });
 
+
 async function salvarInline(el){
 
- const row=el.closest("tr");
- const id=row.dataset.id;
- const campo=el.dataset.campo;
+  const row   = el.closest("tr");
+  const id    = row.dataset.id;
+  const campo = el.dataset.campo;
 
- let valor=el.innerText.trim();
+  let valor = el.innerText.trim();
 
- if(["preco_custo","preco_venda"].includes(campo)){
-   valor=limparMoeda(valor);
-   el.innerText=formatarMoeda(valor);
- }
+  /* ===== PREÇO CUSTO / VENDA ===== */
+  if(campo==="preco_custo" || campo==="preco_venda"){
 
- await fetch(`/products/${id}/campo`,{
- method:"PUT",
- headers:{
-  "Content-Type":"application/json",
-  Authorization:"Bearer "+token
- },
- body:JSON.stringify({campo,valor})
- });
+    // converte para número
+    valor = limparMoeda(valor);
 
- row.querySelector(".variacao").innerText =
- calcularVariacaoTabela(
-  limparMoeda(row.children[8].innerText),
-  limparMoeda(row.children[9].innerText)
- );
+    // reaplica máscara R$
+    el.innerText = formatarMoeda(valor);
+  }
 
- row.querySelector(".skuFull").innerText =
- [row.children[3].innerText,row.children[4].innerText,row.children[5].innerText]
- .filter(Boolean).join("-");
+  /* ===== ESTOQUE ===== */
+  if(campo==="estoque"){
+    valor = parseInt(valor) || 0;
+  }
 
- el.style.background="#bbf7d0";
- setTimeout(()=>el.style.background="",500);
+  /* ===== ANO ===== */
+  if(campo==="ano"){
+    valor = parseInt(valor) || null;
+  }
+
+  /* ===== SALVAR NO BANCO ===== */
+  await fetch(`/products/${id}/campo`,{
+    method:"PUT",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer "+token
+    },
+    body:JSON.stringify({campo,valor})
+  });
+
+  /* ===== FEEDBACK VERDE ===== */
+  el.style.background="#bbf7d0";
+  setTimeout(()=>el.style.background="",500);
+
+  /* ===== RECALCULAR LINHA ===== */
+  recalcularLinha(row);
 }
 
-/* ===== SALVAR ===== */
+/* ================= VARIAÇÃO ================= */
+
+function recalcularLinha(row){
+
+  const custo = limparMoeda(
+    row.querySelector('[data-campo="preco_custo"]').innerText
+  );
+
+  const venda = limparMoeda(
+    row.querySelector('[data-campo="preco_venda"]').innerText
+  );
+
+  /* recalcula variação */
+  row.querySelector(".variacao").innerText =
+    calcularVariacaoTabela(custo,venda);
+
+  /* atualiza SKU completo */
+  row.querySelector(".skuFull").innerText =
+    [
+      row.querySelector('[data-campo="sku"]').innerText,
+      row.querySelector('[data-campo="cor"]').innerText,
+      row.querySelector('[data-campo="tamanho"]').innerText
+    ].filter(Boolean).join("-");
+}
+/* ================= MOEDA ================= */
+
+function limparMoeda(v){
+ return parseFloat(String(v).replace(/[^\d]/g,''))/100 || 0;
+}
+
+function formatarMoeda(v){
+ return Number(v||0).toLocaleString("pt-BR",{
+ style:"currency",
+ currency:"BRL"
+ });
+}
+
+custo.addEventListener("input", ()=>{
+ formatarMoedaInput(custo);
+ calcularVariacao();
+});
+
+venda.addEventListener("input", ()=>{
+ formatarMoedaInput(venda);
+ calcularVariacao();
+});
+
+function formatarMoedaInput(input){
+ let valor=input.value.replace(/\D/g,'');
+ if(!valor){ input.value=""; return; }
+ valor=(valor/100).toFixed(2);
+ valor=valor.replace(".",",");
+ valor=valor.replace(/\B(?=(\d{3})+(?!\d))/g,".");
+ input.value="R$ "+valor;
+}
+
+function calcularVariacao(){
+ const c=limparMoeda(custo.value);
+ const v=limparMoeda(venda.value);
+ if(!c||!v){ variacao.value=""; return; }
+ variacao.value=(((v-c)/c)*100).toFixed(2)+"%";
+}
+
+/* ================= CRUD ================= */
 
 async function salvar(){
 
- await fetch("/products",{
- method:"POST",
- headers:{
-  "Content-Type":"application/json",
-  Authorization:"Bearer "+token
- },
- body:JSON.stringify({
+ const dados={
+  codigo:codigo.value,
   nome:nome.value,
   fornecedor:fornecedor.value,
   sku:sku.value,
@@ -287,125 +330,201 @@ async function salvar(){
   estoque:estoque.value,
   preco_custo:limparMoeda(custo.value),
   preco_venda:limparMoeda(venda.value),
+  variacao:variacao.value,
   barcode:barcode.value,
-  ano:ano.value
- })
+  ano:ano.value,
+
+ };
+
+ await fetch("/products",{
+  method:"POST",
+  headers:{
+   "Content-Type":"application/json",
+   Authorization:"Bearer "+token
+  },
+  body:JSON.stringify(dados)
  });
 
+ limparFormulario();
  carregarProdutos();
  gerarCodigoAutomatico();
 }
 
-/* ===== POPUP EXCLUIR ===== */
-
-function abrirPopupDelete(){
- document.getElementById("popupDelete").style.display="flex";
-}
-
-function fecharPopupDelete(){
- document.getElementById("popupDelete").style.display="none";
-}
-
-async function confirmarExcluirTudo(){
-
- const username=userDelete.value;
- const password=passDelete.value;
-
- const res=await fetch("/products/delete-all",{
- method:"POST",
- headers:{
-  "Content-Type":"application/json",
-  Authorization:"Bearer "+token
- },
- body:JSON.stringify({username,password})
+async function excluirProduto(id){
+ await fetch("/products/"+id,{
+ method:"DELETE",
+ headers:{Authorization:"Bearer "+token}
  });
-
- const d=await res.json();
-
- if(d.success){
-  fecharPopupDelete();
-  carregarProdutos();
-  alert("Tabela limpa ✔");
- }else{
-  alert("Login inválido");
- }
+ carregarProdutos();
 }
 
-/* ===== IMPORTAR EXCEL ===== */
+/* ================= BUSCA ================= */
+
+function buscar(valor){
+
+ const termo=valor.toUpperCase();
+ const coluna=document.getElementById("colunaBusca").value;
+
+ document.querySelectorAll("#lista tr").forEach(row=>{
+
+ const codigo=row.children[0].innerText.toUpperCase();
+ const nome=row.children[1].innerText.toUpperCase();
+ const fornecedor=row.children[2].innerText.toUpperCase();
+
+ let texto="";
+
+ if(coluna==="codigo") texto=codigo;
+ else if(coluna==="nome") texto=nome;
+ else if(coluna==="fornecedor") texto=fornecedor;
+ else texto=row.innerText.toUpperCase();
+
+ row.style.display=
+ texto.includes(termo)?"":"none";
+ });
+}
+
+/* ================= IMPORTAR EXCEL ================= */
 
 function importarExcel(){
- excelFile.click();
+ document.getElementById("excelFile").click();
 }
 
-async function lerExcel(e){
+async function lerExcel(event){
 
- const file = e.target.files[0];
- if(!file) return;
+  const file = event.target.files[0];
+  if(!file) return;
 
- const formData = new FormData();
- formData.append("file",file);
+  const formData = new FormData();
+  formData.append("file", file);
 
- progressBox.style.display="block";
+  document.getElementById("importProgress").style.display="block";
+  document.getElementById("importBar").style.width="0%";
+  document.getElementById("importText").innerText="Importando...";
 
- await fetch("/products/import-excel",{
-  method:"POST",
-  headers:{Authorization:"Bearer "+token},
-  body:formData
- });
+  const res = await fetch("/products/import-excel",{
+    method:"POST",
+    headers:{
+      Authorization:"Bearer "+token
+    },
+    body:formData
+  });
 
- const timer=setInterval(async()=>{
+  const data = await res.json();
 
-   const r=await fetch("/products/import-progress",{
-    headers:{Authorization:"Bearer "+token}
-   });
+  if(data.success){
 
-   const p=await r.json();
+    document.getElementById("importBar").style.width="100%";
+    document.getElementById("importText").innerText =
+      "✔ "+data.total+" produtos importados";
 
-   if(p.total){
-     progressBar.style.width =
-       ((p.atual/p.total)*100)+"%";
-   }
+    carregarProdutos();
 
-   if(p.status==="done"){
-     clearInterval(timer);
-     carregarProdutos();
-   }
+  }else{
+    alert("Erro ao importar");
+  }
 
- },400);
-}
-
-/* ===== FORNECEDORES ===== */
-
-function abrirModal(){ modalFornecedor.style.display="flex"; }
-function fecharModal(){ modalFornecedor.style.display="none"; }
-
-async function carregarFornecedores(){
-
- const r=await fetch("/suppliers",
- {headers:{Authorization:"Bearer "+token}});
-
- const dados=await r.json();
-
- fornecedor.innerHTML="<option></option>";
-
- listaFornecedores.innerHTML="";
-
- dados.forEach(f=>{
-  fornecedor.innerHTML += `<option>${f.nome}</option>`;
-  listaFornecedores.innerHTML += `<tr><td>${f.nome}</td></tr>`;
- });
+  setTimeout(()=>{
+    document.getElementById("importProgress").style.display="none";
+  },2000);
 
 }
+  
+async function excluirTudo(){
 
-/* ===== CODIGO AUTO ===== */
+  const username = prompt("Digite o usuário:");
+  if(!username) return;
+
+  const password = prompt("Digite a senha:");
+  if(!password) return;
+
+  const res = await fetch("/products/delete-all",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({username,password})
+  });
+
+  const data = await res.json();
+
+  if(res.ok){
+    alert("Todos os produtos foram excluídos.");
+    carregarProdutos();
+  }else{
+    alert(data.error || "Erro");
+  }
+}
+
+
+
+
+
+function abrirPopupExcluir(){
+  document.getElementById("popupExcluir").style.display="flex";
+}
+
+function fecharPopupExcluir(){
+  document.getElementById("popupExcluir").style.display="none";
+}
+
+/* EXCLUIR TUDO */
+async function confirmarExcluirTudo(){
+
+  const username =
+    document.getElementById("loginExcluir").value;
+
+  const password =
+    document.getElementById("senhaExcluir").value;
+
+  if(!username || !password){
+    alert("Preencha usuário e senha");
+    return;
+  }
+
+  const res = await fetch("/products/delete-all",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer "+token
+    },
+    body:JSON.stringify({username,password})
+  });
+
+  const data = await res.json();
+
+  if(data.success){
+    alert("Todos produtos removidos ✔");
+    fecharPopupExcluir();
+    carregarProdutos();
+  }else{
+    alert("Login inválido");
+  }
+}
+
+
+/* ================= MODAL ================= */
+
+function abrirModal(){
+  const modal = document.getElementById("modalFornecedor");
+  if(modal) modal.style.display = "flex";
+}
+
+function fecharModal(){
+  const modal = document.getElementById("modalFornecedor");
+  if(modal) modal.style.display = "none";
+}
+
+/* ================= GERAR CÓDIGO AUTOMÁTICO ================= */
 
 async function gerarCodigoAutomatico(){
 
   const res = await fetch("/products/next-code",{
     headers:{
-      Authorization:"Bearer "+token
+      Authorization: "Bearer " + token
     }
   });
+
+  if(!res.ok) return;
 
   const data = await res.json();
 
@@ -414,20 +533,114 @@ async function gerarCodigoAutomatico(){
 
 
 
-/* ===== INIT ===== */
+
+
+
+
+
+
+
+
+
+
+
+
+
+function voltarDashboard(){
+  window.location.href = "dashboard.html";
+}
+
+/* ================= FORNECEDORES ================= */
+
+async function carregarFornecedores(){
+
+  const res = await fetch("/suppliers",{
+    headers:{
+      Authorization:"Bearer " + token
+    }
+  });
+
+  const fornecedores = await res.json();
+
+  const select = document.getElementById("fornecedor");
+  const lista = document.getElementById("listaFornecedores");
+
+  if(!select || !lista) return;
+
+  select.innerHTML = "<option value=''>Selecione</option>";
+  lista.innerHTML = "";
+
+  fornecedores.forEach(f=>{
+
+    select.innerHTML += `
+      <option value="${f.nome}">
+        ${f.nome}
+      </option>`;
+
+    lista.innerHTML += `
+      <tr>
+        <td>${f.nome}</td>
+        <td>
+          <button onclick="excluirFornecedor(${f.id})">
+            🗑
+          </button>
+        </td>
+      </tr>`;
+  });
+}
+
+
+
+
+
+
+
+
+
+/* ================= INIT ================= */
 
 window.onload=()=>{
  carregarProdutos();
- carregarFornecedores();
+carregarFornecedores();
  gerarCodigoAutomatico();
-lerExcel()
 };
 
-function voltarDashboard(){
- location.href="dashboard.html";
-}
+
+
+
 
 </script>
+
+
+
+<div id="popupExcluir" class="modal-bg" style="display:none;">
+  <div class="modal">
+
+    <h3>⚠️ Confirmação de Segurança</h3>
+    <p>Digite usuário e senha para excluir TODOS os produtos</p>
+
+    <input id="loginExcluir" placeholder="Usuário"
+           style="margin-bottom:10px; width:100%;">
+
+    <input id="senhaExcluir" type="password"
+           placeholder="Senha"
+           style="margin-bottom:15px; width:100%;">
+
+    <div style="display:flex; gap:10px;">
+      <button class="btn red" onclick="confirmarExcluirTudo()">
+        Excluir Tudo
+      </button>
+
+      <button class="btn blue" onclick="fecharPopupExcluir()">
+        Cancelar
+      </button>
+    </div>
+
+  </div>
+</div>
+</div>
+
+
 
 </body>
 </html>
