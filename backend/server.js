@@ -250,65 +250,41 @@ app.post("/products/import-excel",
    const workbook = XLSX.read(req.file.buffer,{type:"buffer"});
    const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
-   const dados = XLSX.utils.sheet_to_json(sheet,{ defval:"" });
+   const dados = XLSX.utils.sheet_to_json(sheet,{
+ defval:"",
+ raw:false
+});
 
-   importProgress.total = dados.length;
-   importProgress.atual = 0;
-   importProgress.status = "running";
+for(const item of dados){
 
-   for(const item of dados){
+  const nome = item.NOME || item.Nome || item.nome || "";
+  const fornecedor = item.FORNECEDOR || item.Fornecedor || "";
+  const sku = item.SKU || item.Sku || "";
+  const cor = item.COR || item.Cor || "";
+  const tamanho = item.TAMANHO || item.Tamanho || "";
 
-     const r = await pool.query(`
-       SELECT COALESCE(MAX(codigo),0)+1 as next
-       FROM products
-     `);
+  await pool.query(`
+    INSERT INTO products
+    (codigo,nome,fornecedor,sku,cor,tamanho,
+     estoque,preco_custo,preco_venda,barcode,ano)
+    VALUES(
+      (SELECT COALESCE(MAX(codigo),0)+1 FROM products),
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10
+    )
+  `,[
+    nome,
+    fornecedor,
+    sku,
+    cor,
+    tamanho,
+    parseInt(item.ESTOQUE)||0,
+    parseFloat(String(item.CUSTO).replace(",", "."))||0,
+    parseFloat(String(item.VENDA).replace(",", "."))||0,
+    item.NCM||"",
+    parseInt(item.ANO)||null
+  ]);
 
-     const codigo = r.rows[0].next;
-     const custoRaw =
-      item.CUSTO ||
-      item.Custo ||
-      item.preco_custo ||
-      item["Preço Custo"] ||
-      0;
 
-      const vendaRaw =
-      item.VENDA ||
-      item.Venda ||
-      item.preco_venda ||
-      item["Preço Venda"] ||
-      0;
-
-     await pool.query(`
-       INSERT INTO products
-       (codigo,nome,fornecedor,sku,cor,tamanho,
-        estoque,preco_custo,preco_venda,barcode,ano)
-       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-     `,[
-       codigo,
-       item.NOME || item.Nome || "",
-       item.FORNECEDOR || item.Fornecedor || "",
-       item.SKU || item.Sku || "",
-       item.COR || item.Cor || "",
-       item.TAMANHO || item.Tamanho || "",
-       parseInt(item.ESTOQUE || item.Estoque) || 0,
-
-       parseFloat(
-         String(item.CUSTO || item.Custo || 0)
-           .replace("R$", "")
-           .replace(/\./g,"")
-           .replace(",", ".")
-       ) || 0,
-
-       parseFloat(
-         String(item.VENDA || item.Venda || 0)
-           .replace("R$", "")
-           .replace(/\./g,"")
-           .replace(",", ".")
-       ) || 0,
-
-       item.NCM || "",
-       parseInt(item.ANO || item.Ano) || null
-     ]);
 
      importProgress.atual++;
    }
