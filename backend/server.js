@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS users(
 await pool.query(`
 SELECT setval(
 'products_codigo_seq',
-COALESCE((SELECT MAX(codigo) FROM products),0)
+COALESCE((SELECT MAX(codigo::Integer,0) FROM products),0)
 );
 `);
 
